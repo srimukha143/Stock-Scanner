@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holdings scanner</title>
+<meta name="theme-color" content="#15223B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scanner">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315223B'/%3E%3Crect x='12' y='20' width='22' height='8' fill='%23fff'/%3E%3Crect x='34' y='20' width='10' height='8' fill='%238FA6D6'/%3E%3Crect x='12' y='36' width='30' height='8' fill='%23fff'/%3E%3Crect x='42' y='36' width='8' height='8' fill='%238FA6D6'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2315223B'/%3E%3Crect x='12' y='20' width='22' height='8' fill='%23fff'/%3E%3Crect x='34' y='20' width='10' height='8' fill='%238FA6D6'/%3E%3Crect x='12' y='36' width='30' height='8' fill='%23fff'/%3E%3Crect x='42' y='36' width='8' height='8' fill='%238FA6D6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#E6EBF0;
+  --paper:#FFFFFF;
+  --ink:#15223B;
+  --ink-2:#51607A;
+  --ink-3:#8593A8;
+  --rule:#CDD6E0;
+  --seg-a:#15223B;
+  --seg-b:#3B5487;
+  --pass:#1C7A4B;
+  --ideal:#125C38;
+  --fail:#B0271F;
+  --fail-seg:#C4483F;
+  --fail-seg-b:#DB766E;
+  --focus:#2D6BD8;
+  --radius-lg:14px;
+  --radius-sm:6px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.5;font-variation-settings:"wdth" 100;
+}
+.num,.fig,td.num,th.num{font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+a{color:var(--seg-b)}
+.wrap{max-width:1320px;margin:0 auto;padding:0 28px}
+
+/* ---------- header ---------- */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px;padding:36px 0 24px}
+h1{
+  margin:0;font-size:clamp(2.1rem,4.4vw,3.4rem);line-height:.95;font-weight:820;
+  font-variation-settings:"wdth" 125;letter-spacing:-.01em;
+}
+.asof{margin:10px 0 0;color:var(--ink-2)}
+.asof strong{color:var(--ink);font-weight:650}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{
+  appearance:none;border:1px solid var(--rule);background:var(--paper);color:var(--ink);
+  padding:9px 16px;border-radius:999px;font-weight:600;cursor:pointer;line-height:1.2;
+}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary:hover{background:#22325A}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.small{padding:6px 12px;font-size:13px}
+
+/* ---------- sources ---------- */
+.panel{background:var(--paper);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:22px}
+.panel-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px;margin-bottom:14px}
+h2{margin:0;font-size:1.45rem;font-weight:760;font-variation-settings:"wdth" 118;line-height:1.15}
+h3{margin:0;font-size:1rem;font-weight:680}
+.hint{margin:0;color:var(--ink-2);max-width:72ch}
+.src-groups{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px}
+.src-group h3{font-size:13px;color:var(--ink-2);font-weight:600;margin-bottom:8px}
+.tiles{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}
+.src-group.idx .tiles{grid-template-columns:repeat(3,112px)}
+.tile{
+  border:1px solid var(--rule);border-radius:var(--radius-sm);padding:8px 10px 9px;min-height:74px;
+  display:flex;flex-direction:column;gap:1px;position:relative;background:var(--paper);
+}
+.tile b{font-size:15px;font-weight:760;font-variation-settings:"wdth" 115;display:flex;align-items:center;gap:6px}
+.tile .dot{width:7px;height:7px;border-radius:50%;background:var(--rule);flex:none}
+.tile .tname{font-size:12px;color:var(--ink-2);line-height:1.25}
+.tile .tstat{font-size:12px;color:var(--ink-3);margin-top:auto;line-height:1.25}
+.tile a{font-size:12px;margin-top:auto}
+.tile a + a{margin-top:0}
+.tile[data-state="ok"]{border-color:#B9CBBF}
+.tile[data-state="ok"] .dot{background:var(--pass)}
+.tile[data-state="ok"] .tstat{color:var(--ink-2)}
+.tile[data-state="loading"] .dot{background:var(--seg-b);animation:pulse 1s infinite alternate}
+.tile[data-state="error"]{border-color:#E4B7B3}
+.tile[data-state="error"] .dot{background:var(--fail)}
+.tile[data-state="error"] .tstat{color:var(--fail)}
+@keyframes pulse{to{opacity:.25}}
+.notices{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.notice{font-size:14px;padding:9px 12px;border-radius:var(--radius-sm);background:#FBF3E4;color:#6B4A0C}
+.notice.bad{background:#FBEAE8;color:#7E1D17}
+.notice select{margin-left:6px;padding:2px 6px}
+
+/* ---------- scanners ---------- */
+.rule-line{margin:4px 0 0;color:var(--ink-2);font-size:14px}
+.rails{display:flex;flex-direction:column;gap:12px;margin:18px 0 26px}
+.rail-row{display:grid;grid-template-columns:190px minmax(0,1fr) 210px;align-items:center;gap:18px}
+.rail-label b{display:block;font-size:17px;font-weight:780;font-variation-settings:"wdth" 118;line-height:1.1}
+.rail-label span{font-size:12px;color:var(--ink-2)}
+.rail{position:relative;height:26px;border-radius:4px;background:
+  repeating-linear-gradient(-45deg,#EEF2F6 0 5px,#E3E9EF 5px 10px);}
+.rail-fill{position:absolute;inset:0 auto 0 0;display:flex;overflow:hidden;border-radius:4px 0 0 4px;
+  transform-origin:left center}
+.rail-fill i{display:block;height:100%;flex:none;background:var(--seg-a);border-right:1px solid rgba(255,255,255,.55)}
+.rail-fill i:nth-child(even){background:var(--seg-b)}
+.rail-row.fail .rail-fill i{background:var(--fail-seg)}
+.rail-row.fail .rail-fill i:nth-child(even){background:var(--fail-seg-b)}
+.mark{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink);transform:translateX(-1px)}
+.mark.ideal{background:none;border-left:2px dashed var(--ink-2)}
+.mark span{position:absolute;top:-17px;right:4px;font-size:11px;color:var(--ink-2);white-space:nowrap}
+.mark.ideal span{right:auto;left:4px}
+.rail-row + .rail-row .mark span{display:none}
+.fig{font-size:22px;font-weight:720;font-variation-settings:"wdth" 110;line-height:1}
+.fig small{display:block;font-size:12.5px;font-weight:500;color:var(--ink-2);margin-top:5px;font-variation-settings:"wdth" 100;line-height:1.3}
+.rail-row.fail .fig{color:var(--fail)}
+.rail-row.fail .fig small{color:var(--fail)}
+.rail-row.overall{border-top:1px solid var(--rule);padding-top:14px;margin-top:2px}
+.rail-row.missing .rail{opacity:.5}
+.rails.grow .rail-fill{animation:grow .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+.list-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.count{font-size:1.2rem;font-weight:720}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.table-wrap{overflow:auto;max-height:70vh;border:1px solid var(--rule);border-radius:var(--radius-sm)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 12px;text-align:left;border-bottom:1px solid #E7ECF1;white-space:nowrap}
+th{position:sticky;top:0;background:#F4F6F9;font-weight:620;font-size:13px;color:var(--ink-2);z-index:1}
+th button{all:unset;cursor:pointer}
+th button:focus-visible{outline:2px solid var(--focus)}
+th[aria-sort="descending"] button::after{content:" \2193"}
+th[aria-sort="ascending"] button::after{content:" \2191"}
+th.num,td.num{text-align:right}
+td.rank{color:var(--ink-3);width:1%}
+td.sym{font-weight:740;font-variation-settings:"wdth" 112}
+td.name{color:var(--ink-2);white-space:normal;min-width:180px}
+td.muted{color:#C3CCD7}
+.tag{font-size:10.5px;font-weight:600;color:var(--seg-b);border:1px solid #C3CEE3;border-radius:4px;padding:0 4px;margin-left:5px;vertical-align:1px}
+td.norm{position:relative;min-width:150px}
+td.norm .bar{position:absolute;left:12px;top:50%;height:6px;transform:translateY(-50%);background:#DCE3EE;border-radius:3px;width:calc((100% - 80px) * var(--w))}
+td.norm span{position:relative}
+tbody tr:hover td{background:#F7F9FB}
+.near{margin-top:14px;font-size:14px;color:var(--ink-2)}
+.near b{color:var(--ink);font-variation-settings:"wdth" 112}
+
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:999px;padding:2px}
+.seg button{border:0;background:none;padding:5px 12px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+.sector-cols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(104px,1fr);gap:0;overflow-x:auto;
+  border:1px solid var(--rule);border-radius:var(--radius-sm)}
+.scol{border-right:1px solid #E7ECF1;min-width:0}
+.scol:last-child{border-right:0}
+.scol header{position:sticky;top:0;background:#F4F6F9;padding:10px 9px 9px;border-bottom:1px solid var(--rule)}
+.scol header b{font-size:16px;font-weight:780;font-variation-settings:"wdth" 118;display:block;line-height:1.1}
+.scol header span{font-size:11.5px;color:var(--ink-2);display:block;line-height:1.3;min-height:30px}
+.scol header .st{font-size:12px;font-weight:620;margin-top:3px;min-height:0}
+.st.ideal{color:var(--ideal)} .st.pass{color:var(--pass)} .st.fail{color:var(--fail)}
+.scol ol{list-style:none;margin:0;padding:4px 0}
+.scol li{display:flex;justify-content:space-between;gap:4px;padding:3px 9px;font-size:13.5px;position:relative}
+.scol li::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:calc(var(--w) * 100%);background:#EDF1F6;z-index:0}
+.scol li *{position:relative}
+.scol li b{font-weight:700;font-variation-settings:"wdth" 100}
+.scol li span{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.scol .none{padding:12px;color:var(--ink-3);font-size:13px}
+
+.empty{padding:34px 0 10px;color:var(--ink-2);max-width:62ch}
+.empty p{margin:0 0 10px}
+
+/* ---------- rules ---------- */
+details.rules summary{cursor:pointer;font-weight:700;font-size:1.1rem;list-style:none;display:flex;align-items:center;gap:10px}
+details.rules summary::-webkit-details-marker{display:none}
+details.rules summary::before{content:"+";display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--rule);border-radius:50%;font-weight:500}
+details.rules[open] summary::before{content:"\2212"}
+.rules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;margin-top:18px}
+.rules-grid fieldset{border:1px solid var(--rule);border-radius:var(--radius-sm);padding:12px 14px 14px;margin:0}
+.rules-grid legend{font-weight:680;padding:0 6px}
+.field{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px}
+.field label{color:var(--ink-2)}
+.field input{width:92px;padding:5px 8px;border:1px solid var(--rule);border-radius:5px;text-align:right;font-variant-numeric:tabular-nums}
+.field input:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+
+footer{padding:10px 0 48px;color:var(--ink-3);font-size:13px}
+footer p{margin:0 0 6px;max-width:90ch}
+
+.drop{position:fixed;inset:0;background:rgba(21,34,59,.82);display:none;place-items:center;z-index:50;color:#fff}
+.drop.on{display:grid}
+.drop div{border:2px dashed rgba(255,255,255,.6);border-radius:18px;padding:48px 64px;text-align:center}
+.drop strong{display:block;font-size:2rem;font-variation-settings:"wdth" 122;font-weight:780}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width:600px){
+  .actions{width:100%}
+  .actions .btn{flex:1 1 auto;text-align:center}
+  td.name,th.name-h{display:none}
+  th,td{padding:7px 8px}
+  td.norm{min-width:110px}
+}
+@media (max-width:900px){
+  .wrap{padding:0 16px}
+  .src-groups{grid-template-columns:1fr}
+  .tiles,.src-group.idx .tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rail-row{grid-template-columns:1fr;gap:6px}
+  .rail-row .fig{display:flex;align-items:baseline;gap:10px}
+  .rail-row .fig small{margin:0}
+  .panel{padding:18px 16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .rails.grow .rail-fill{animation:none}
+  .tile[data-state="loading"] .dot{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Holdings scanner</h1>
+      <p class="asof" id="asof">No holdings loaded yet</p>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="btnFetch" hidden>Fetch latest files</button>
+      <button class="btn" id="btnAdd">Add files</button>
+      <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.json" hidden>
+      <button class="btn" id="btnSample">Load 12 Jan 2025 sample</button>
+      <button class="btn" id="btnExport" disabled>Export to Excel</button>
+    </div>
+  </header>
+
+  <section class="panel" aria-labelledby="srcTitle">
+    <div class="panel-head">
+      <h2 id="srcTitle">Daily files</h2>
+      <p class="hint" id="srcHint"></p>
+    </div>
+    <div class="src-groups">
+      <div class="src-group idx"><h3>Indexes</h3><div class="tiles" id="tilesIndex"></div></div>
+      <div class="src-group"><h3>Sectors</h3><div class="tiles" id="tilesSector"></div></div>
+    </div>
+    <div class="notices" id="notices"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="idxTitle">
+    <div class="panel-head">
+      <div>
+        <h2 id="idxTitle">Index scanner</h2>
+        <p class="rule-line" id="idxRules"></p>
+      </div>
+    </div>
+    <div id="indexBody"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="secTitle">
+    <div class="panel-head">
+      <div>
+        <h2 id="secTitle">Sector scanner</h2>
+        <p class="rule-line" id="secRules"></p>
+      </div>
+    </div>
+    <div id="sectorBody"></div>
+  </section>
+
+  <section class="panel">
+    <details class="rules" id="rulesPanel">
+      <summary>Adjust thresholds</summary>
+      <div class="rules-grid" id="rulesGrid"></div>
+      <div style="margin-top:14px"><button class="btn small" id="btnReset">Reset to default rules</button></div>
+    </details>
+  </section>
+
+  <footer>
+    <p>Sources: <a href="https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-500-etf-trust-spy" target="_blank" rel="noopener">SPY</a>,
+      <a href="https://www.ssga.com/us/en/intermediary/etfs/spdr-dow-jones-industrial-average-etf-trust-dia" target="_blank" rel="noopener">DIA</a>,
+      <a href="https://www.invesco.com/qqq-etf/en/about.html" target="_blank" rel="noopener">QQQ holdings</a>
+      (<a href="https://www.invesco.com/us/financial-products/etfs/holdings?audienceType=Investor&amp;ticker=QQQ" target="_blank" rel="noopener">older Invesco page</a>),
+      <a href="https://www.sectorspdrs.com/allsectors" target="_blank" rel="noopener">Select Sector SPDRs</a>.
+      Weights come from each fund's daily holdings file. GOOG is combined into GOOGL in every fund before screening.</p>
+    <p>For research only, not investment advice.</p>
+  </footer>
+</div>
+
+<div class="drop" id="drop" aria-hidden="true"><div><strong>Drop holdings files</strong>SPY, QQQ, DIA and sector files, or a Scanners workbook</div></div>
+<div class="sr" aria-live="polite" id="live"></div>
+
+<script>
+/* Holdings scanner engine: file parsing + screening rules.
+   Works in the browser (window.Scanner) and in Node (module.exports). */
+(function (root) {
+  'use strict';
+
+  const INDEX_FUNDS = ['SPY', 'QQQ', 'DIA'];
+  const SECTOR_FUNDS = ['XLB', 'XLC', 'XLE', 'XLF', 'XLI', 'XLK', 'XLP', 'XLRE', 'XLU', 'XLV', 'XLY'];
+  const ALL_FUNDS = INDEX_FUNDS.concat(SECTOR_FUNDS);
+
+  const FUND_NAMES = {
+    SPY: 'S&P 500', QQQ: 'Nasdaq-100', DIA: 'Dow Jones',
+    XLB: 'Materials', XLC: 'Communication Services', XLE: 'Energy', XLF: 'Financials',
+    XLI: 'Industrials', XLK: 'Technology', XLP: 'Consumer Staples', XLRE: 'Real Estate',
+    XLU: 'Utilities', XLV: 'Health Care', XLY: 'Consumer Discretionary'
+  };
+
+  // All thresholds are in percent, exactly as written in the filter criteria.
+  const DEFAULT_RULES = {
+    index: { SPY: 0.125, QQQ: 0.5, DIA: 2.5, coverage: 80, normalized: 0.5 },
+    sector: {
+      XLF: 1.2, XLI: 1.2,
+      XLK: 1.5, XLP: 1.5, XLV: 1.5, XLY: 1.5,
+      XLB: 2, XLC: 2, XLE: 2, XLRE: 2, XLU: 2,
+      coverage: 70, ideal: 75
+    }
+  };
+
+  // Fund CUSIPs, used to recognise JSON downloads that carry no ticker.
+  const CUSIP_FUNDS = { '46090E103': 'QQQ', '78462F103': 'SPY', '252787106': 'DIA' };
+
+  // Share classes that are combined into one symbol before screening.
+  const MERGE = { GOOG: 'GOOGL' };
+
+  function cloneRules(r) { return JSON.parse(JSON.stringify(r || DEFAULT_RULES)); }
+
+  /* ---------- normalisation ---------- */
+
+  function normTicker(t) {
+    if (t == null) return '';
+    let s = String(t).trim().toUpperCase();
+    s = s.replace(/\s+(US|UW|UN|UQ|UA)$/, '');           // Bloomberg-style suffixes
+    s = s.replace(/^([A-Z]{1,5})[\/\- ]([A-Z])$/, '$1.$2'); // BRK/B, BRK-B, BRK B -> BRK.B
+    return s;
+  }
+
+  function mergedTicker(sym) { return MERGE[sym] || sym; }
+
+  function toNumber(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : NaN;
+    if (v == null) return NaN;
+    const s = String(v).replace(/[%,\s]/g, '');
+    if (s === '' || s === '-') return NaN;
+    return Number(s);
+  }
+
+  function isSecurity(sym, name) {
+    if (!sym || sym === '-' || sym === '--') return false;
+    if (!/^[A-Z][A-Z.]{0,6}$/.test(sym)) return false;           // drops cash lines, futures (digits), blanks
+    if (/^(CASH|USD|XTSLA)$/.test(sym)) return false;
+    if (name && /\b(US DOLLAR|CASH COLLATERAL|MONEY MARKET|FUTURES?)\b/i.test(name)) return false;
+    return true;
+  }
+
+  function nicerName(a, b) {
+    // Prefer mixed-case names (e.g. "Apple Inc.") over ALL-CAPS ("APPLE INC").
+    if (!a) return b || '';
+    if (!b) return a;
+    const caps = s => s === s.toUpperCase();
+    if (caps(a) && !caps(b)) return b;
+    return a;
+  }
+
+  /* ---------- file parsing (array-of-arrays in, fund tables out) ---------- */
+
+  const RE_WEIGHT = /^(weight|weighting|% ?weight|weight ?\(%\)|% of (net|fund|total) ?assets|percentage ?of ?total ?net ?assets|percent ?of ?fund|weightpercent)$/i;
+  const RE_TICKER = /^(ticker|symbol|holding ticker|ticker symbol|holding symbol|stock|security ticker)$/i;
+  const RE_NAME = /^(name|security name|holding name|issuer ?name|company|company name|security|description)$/i;
+  const RE_FUND = /^(sector|fund|fund ticker|etf|fund symbol|index)$/i;
+  const RE_DATE = /^(date|as of|as of date|effective ?date|holdings ?date)$/i;
+
+  function cellStr(v) { return v == null ? '' : String(v).trim(); }
+
+  function fundFromFilename(filename) {
+    if (!filename) return null;
+    const m = String(filename).toLowerCase().match(/(?:^|[^a-z])(xlre|xlb|xlc|xle|xlf|xli|xlk|xlp|xlu|xlv|xly|spy|dia|qqq)(?:[^a-z]|$)/);
+    return m ? m[1].toUpperCase() : null;
+  }
+
+  function scanMeta(aoa) {
+    const meta = { fund: null, asOf: null, fundName: null };
+    const lim = Math.min(aoa.length, 12);
+    for (let r = 0; r < lim; r++) {
+      const row = aoa[r] || [];
+      for (let c = 0; c < row.length; c++) {
+        const s = cellStr(row[c]);
+        if (!s) continue;
+        const next = cellStr(row[c + 1]);
+        if (/^ticker symbol:?$/i.test(s) && next) meta.fund = next.toUpperCase();
+        else if (/^fund name:?$/i.test(s) && next) meta.fundName = next;
+        else if (/^holdings:?$/i.test(s) && next) meta.asOf = next.replace(/^as of\s*/i, '');
+        else if (/^as of[: ]/i.test(s) && !meta.asOf) meta.asOf = s.replace(/^as of:?\s*/i, '');
+      }
+    }
+    return meta;
+  }
+
+  function findHeader(aoa) {
+    const lim = Math.min(aoa.length, 40);
+    for (let r = 0; r < lim; r++) {
+      const row = (aoa[r] || []).map(cellStr);
+      const w = row.findIndex(s => RE_WEIGHT.test(s));
+      const t = row.findIndex(s => RE_TICKER.test(s));
+      if (w >= 0 && t >= 0) {
+        return {
+          row: r, weight: w, ticker: t,
+          name: row.findIndex(s => RE_NAME.test(s)),
+          fund: row.findIndex(s => RE_FUND.test(s)),
+          date: row.findIndex(s => RE_DATE.test(s))
+        };
+      }
+    }
+    return null;
+  }
+
+  /* Parse one sheet. Returns [{fund, rows:[{sym,name,w}], asOf, fundName}] or []. */
+  function parseSheet(aoa, filename) {
+    const h = findHeader(aoa);
+    if (!h) return [];
+    const meta = scanMeta(aoa);
+    const hint = (meta.fund && ALL_FUNDS.includes(meta.fund) ? meta.fund : null) || fundFromFilename(filename);
+    // A "Sector"/"Fund" column only counts if it actually holds fund tickers
+    // (SSGA files have a Sector column with GICS names, which must be ignored).
+    if (h.fund >= 0) {
+      let hits = 0;
+      for (let r = h.row + 1; r < Math.min(aoa.length, h.row + 200); r++) {
+        if (ALL_FUNDS.includes(cellStr((aoa[r] || [])[h.fund]).toUpperCase())) hits++;
+      }
+      if (!hits) h.fund = -1;
+    }
+    const groups = {};
+    let dateSeen = null;
+    for (let r = h.row + 1; r < aoa.length; r++) {
+      const row = aoa[r] || [];
+      const w = toNumber(row[h.weight]);
+      const sym = cellStr(row[h.ticker]);
+      if (!sym || isNaN(w)) continue;
+      let fund = hint;
+      if (h.fund >= 0) {
+        const f = cellStr(row[h.fund]).toUpperCase();
+        if (ALL_FUNDS.includes(f)) fund = f;
+        else if (f) continue; // a fund column that isn't one of ours
+      }
+      fund = fund || '?';
+      if (h.date >= 0 && !dateSeen && row[h.date] != null) dateSeen = formatDate(row[h.date]);
+      (groups[fund] = groups[fund] || []).push({
+        sym: cellStr(row[h.ticker]),
+        name: h.name >= 0 ? cellStr(row[h.name]) : '',
+        w: w
+      });
+    }
+    return Object.keys(groups).map(f => ({
+      fund: f, rows: groups[f], asOf: meta.asOf || dateSeen, fundName: meta.fundName
+    }));
+  }
+
+  function formatDate(v) {
+    if (typeof v === 'number' && v > 30000 && v < 80000) {       // Excel serial date
+      const d = new Date(Math.round((v - 25569) * 86400000));
+      return d.toISOString().slice(0, 10);
+    }
+    if (v instanceof Date) return v.toISOString().slice(0, 10);
+    return cellStr(v);
+  }
+
+  /* JSON payloads (e.g. an API response): find the first array of holding-like objects. */
+  function jsonToAoa(obj) {
+    let found = null;
+    (function walk(o, depth) {
+      if (found || depth > 6 || o == null) return;
+      if (Array.isArray(o)) {
+        if (o.length && typeof o[0] === 'object' && o[0] && !Array.isArray(o[0])) {
+          const keys = Object.keys(o[0]);
+          if (keys.some(k => /ticker|symbol/i.test(k)) && keys.some(k => /weight|percent/i.test(k))) { found = o; return; }
+        }
+        o.forEach(x => walk(x, depth + 1));
+      } else if (typeof o === 'object') {
+        Object.values(o).forEach(x => walk(x, depth + 1));
+      }
+    })(obj, 0);
+    if (!found) return null;
+    // Top-level metadata, e.g. Invesco: {cusip, effectiveDate, holdings:[...]}
+    const top = (obj && typeof obj === 'object' && !Array.isArray(obj)) ? obj : {};
+    const asOf = top.effectiveBusinessDate || top.effectiveDate || top.asOfDate || top.date || null;
+    const fundTop = (top.ticker && ALL_FUNDS.includes(String(top.ticker).toUpperCase())) ? String(top.ticker).toUpperCase()
+      : (CUSIP_FUNDS[String(top.cusip || '').toUpperCase()] || null);
+    const keys = Object.keys(found[0]);
+    const pick = (re) => keys.find(k => re.test(k));
+    const tk = pick(/^ticker$/i) || pick(/ticker|symbol/i);
+    const wk = pick(/^weight$/i) || pick(/percentageOfTotalNetAssets/i) || pick(/weight|percent/i);
+    const nk = pick(/^name$/i) || pick(/issuerName|securityName|name/i);
+    const fk = pick(/fundTicker|^fund$/i);
+    const useFund = fk || fundTop;
+    const head = ['Ticker', 'Weight', 'Name', 'Date'].concat(useFund ? ['Fund'] : []);
+    return [head].concat(found.map(x => [x[tk], x[wk], nk ? x[nk] : '', asOf]
+      .concat(useFund ? [fk ? x[fk] : fundTop] : [])));
+  }
+
+  /* ---------- building fund tables ---------- */
+
+  /* rows have raw weights (either % like 7.31 or fractions like 0.0731).
+     Step 1: convert to percentage basis. Step 2: merge GOOG into GOOGL. */
+  function buildFund(fund, rows, extra) {
+    const clean = [];
+    let rawTotal = 0;
+    rows.forEach(r => {
+      const sym = normTicker(r.sym);
+      if (!isSecurity(sym, r.name)) return;
+      rawTotal += Math.abs(r.w);
+      clean.push({ sym: sym, name: r.name || '', w: r.w });
+    });
+    // Weight column is either percent (sums to ~100) or fraction (sums to ~1).
+    const factor = rawTotal > 1.5 ? 0.01 : 1;
+    const map = new Map();
+    clean.forEach(r => {
+      const key = mergedTicker(r.sym);
+      const cur = map.get(key);
+      const w = r.w * factor;
+      if (cur) {
+        cur.w += w;
+        cur.parts++;
+        if (!cur.from.includes(r.sym)) cur.from.push(r.sym);
+      } else {
+        map.set(key, { sym: key, name: r.name, w: w, from: [r.sym], parts: 1 });
+      }
+    });
+    const holdings = Array.from(map.values()).sort((a, b) => b.w - a.w);
+    holdings.forEach(h => {
+      if (h.parts > 1) h.name = h.name.replace(/\s+(cl(ass)?\.?\s*[AC]|[AC])$/i, '') + ' (A+C)';
+    });
+    return Object.assign({
+      fund: fund,
+      holdings: holdings,
+      total: holdings.reduce((s, h) => s + h.w, 0),
+      count: holdings.length,
+      scale: factor === 0.01 ? 'percent' : 'fraction'
+    }, extra || {});
+  }
+
+  /* ---------- screening ---------- */
+
+  function nameBook(funds) {
+    const book = {};
+    Object.values(funds).forEach(f => f.holdings.forEach(h => { book[h.sym] = nicerName(book[h.sym], h.name); }));
+    return book;
+  }
+
+  function runIndex(funds, rules) {
+    const R = rules.index;
+    const names = nameBook(funds);
+    const perFund = {};
+    const combined = new Map();
+    INDEX_FUNDS.forEach(f => {
+      const fd = funds[f];
+      if (!fd) { perFund[f] = { fund: f, loaded: false, threshold: R[f] / 100 }; return; }
+      const thr = R[f] / 100;
+      const eligible = fd.holdings.filter(h => h.w >= thr - 1e-12);
+      const coverage = eligible.reduce((s, h) => s + h.w, 0);
+      perFund[f] = {
+        fund: f, loaded: true, threshold: thr, eligible: eligible, coverage: coverage,
+        total: fd.total, count: fd.count, asOf: fd.asOf,
+        pass: coverage >= R.coverage / 100 - 1e-12
+      };
+      eligible.forEach(h => {
+        let c = combined.get(h.sym);
+        if (!c) { c = { sym: h.sym, name: names[h.sym] || h.name, by: {}, sum: 0, merged: false }; combined.set(h.sym, c); }
+        c.by[f] = h.w;
+        c.sum += h.w;
+        if (h.parts > 1) c.merged = true;
+      });
+    });
+    const all = Array.from(combined.values());
+    const grand = all.reduce((s, c) => s + c.sum, 0);
+    const cut = R.normalized / 100;
+    all.forEach(c => { c.norm = grand ? c.sum / grand : 0; c.pass = c.norm >= cut - 1e-12; });
+    all.sort((a, b) => b.norm - a.norm);
+    const final = all.filter(c => c.pass);
+    const nearMiss = all.filter(c => !c.pass && c.norm >= cut * 0.8);
+    return {
+      perFund: perFund, all: all, final: final, nearMiss: nearMiss, grand: grand, cutoff: cut,
+      coverageRule: R.coverage / 100,
+      loaded: INDEX_FUNDS.filter(f => funds[f])
+    };
+  }
+
+  function sectorStatus(cov, R) {
+    if (cov >= R.ideal / 100 - 1e-12) return 'ideal';
+    if (cov >= R.coverage / 100 - 1e-12) return 'pass';
+    return 'fail';
+  }
+
+  function runSector(funds, rules) {
+    const R = rules.sector;
+    const names = nameBook(funds);
+    const perFund = {};
+    let eligSum = 0, totalSum = 0, n = 0;
+    SECTOR_FUNDS.forEach(f => {
+      const fd = funds[f];
+      const thr = R[f] / 100;
+      if (!fd) { perFund[f] = { fund: f, loaded: false, threshold: thr }; return; }
+      const eligible = fd.holdings.filter(h => h.w >= thr - 1e-12)
+        .map(h => Object.assign({}, h, { name: names[h.sym] || h.name }));
+      const coverage = eligible.reduce((s, h) => s + h.w, 0);
+      eligSum += coverage; totalSum += fd.total; n++;
+      perFund[f] = {
+        fund: f, loaded: true, threshold: thr, eligible: eligible, coverage: coverage,
+        total: fd.total, count: fd.count, asOf: fd.asOf, status: sectorStatus(coverage, R)
+      };
+    });
+    const overallCov = totalSum ? eligSum / totalSum : 0;
+    return {
+      perFund: perFund,
+      overall: { coverage: overallCov, status: n ? sectorStatus(overallCov, R) : 'none', loaded: n },
+      coverageRule: R.coverage / 100, idealRule: R.ideal / 100
+    };
+  }
+
+  function run(funds, rules) {
+    rules = rules || DEFAULT_RULES;
+    return { index: runIndex(funds, rules), sector: runSector(funds, rules) };
+  }
+
+  const api = {
+    INDEX_FUNDS, SECTOR_FUNDS, ALL_FUNDS, FUND_NAMES, DEFAULT_RULES,
+    cloneRules, normTicker, parseSheet, jsonToAoa, fundFromFilename, buildFund, run
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Scanner = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+const SAMPLE = {"asOf":"12-Jan-2025","idx":[["SPY","AAPL","APPLE INC",0.07317257],["SPY","NVDA","NVIDIA CORP",0.06855088],["SPY","MSFT","MICROSOFT CORP",0.06295921],["SPY","AMZN","AMAZON.COM INC",0.04146223],["SPY","META","META PLATFORMS INC CLASS A",0.02655482],["SPY","GOOGL","ALPHABET INC CL A",0.02260335],["SPY","TSLA","TESLA INC",0.02199945],["SPY","AVGO","BROADCOM INC",0.02136188],["SPY","GOOGL","ALPHABET INC CL C",0.0185475],["SPY","BRK.B","BERKSHIRE HATHAWAY INC CL B",0.01651885],["SPY","JPM","JPMORGAN CHASE + CO",0.01365263],["SPY","LLY","ELI LILLY + CO",0.01237145],["SPY","V","VISA INC CLASS A SHARES",0.01077459],["SPY","UNH","UNITEDHEALTH GROUP INC",0.00962776],["SPY","XOM","EXXON MOBIL CORP",0.00937375],["SPY","MA","MASTERCARD INC   A",0.00843028],["SPY","COST","COSTCO WHOLESALE CORP",0.00819575],["SPY","WMT","WALMART INC",0.00794775],["SPY","HD","HOME DEPOT INC",0.00767106],["SPY","PG","PROCTER + GAMBLE CO/THE",0.00761423],["SPY","NFLX","NETFLIX INC",0.00745981],["SPY","JNJ","JOHNSON + JOHNSON",0.006832],["SPY","ABBV","ABBVIE INC",0.00629146],["SPY","CRM","SALESFORCE INC",0.00623322],["SPY","BAC","BANK OF AMERICA CORP",0.0061526],["SPY","ORCL","ORACLE CORP",0.00521688],["SPY","MRK","MERCK + CO. INC.",0.00503795],["SPY","CVX","CHEVRON CORP",0.00501023],["SPY","KO","COCA COLA CO/THE",0.00477198],["SPY","WFC","WELLS FARGO + CO",0.00475285],["SPY","CSCO","CISCO SYSTEMS INC",0.00470663],["SPY","ACN","ACCENTURE PLC CL A",0.00445858],["SPY","NOW","SERVICENOW INC",0.00431026],["SPY","TMO","THERMO FISHER SCIENTIFIC INC",0.00415736],["SPY","IBM","INTL BUSINESS MACHINES CORP",0.00411603],["SPY","MCD","MCDONALD S CORP",0.00410089],["SPY","PEP","PEPSICO INC",0.00401008],["SPY","LIN","LINDE PLC",0.00398888],["SPY","DIS","WALT DISNEY CO/THE",0.00396454],["SPY","ABT","ABBOTT LABORATORIES",0.00395243],["SPY","AMD","ADVANCED MICRO DEVICES",0.00394374],["SPY","ISRG","INTUITIVE SURGICAL INC",0.00386448],["SPY","PM","PHILIP MORRIS INTERNATIONAL",0.00377917],["SPY","GE","GENERAL ELECTRIC",0.00373225],["SPY","ADBE","ADOBE INC",0.00368399],["SPY","GS","GOLDMAN SACHS GROUP INC",0.00363178],["SPY","QCOM","QUALCOMM INC",0.00352506],["SPY","INTU","INTUIT INC",0.00349427],["SPY","TXN","TEXAS INSTRUMENTS INC",0.00348727],["SPY","CAT","CATERPILLAR INC",0.00347704],["SPY","AXP","AMERICAN EXPRESS CO",0.00336154],["SPY","BKNG","BOOKING HOLDINGS INC",0.0032144],["SPY","VZ","VERIZON COMMUNICATIONS INC",0.00321265],["SPY","MS","MORGAN STANLEY",0.0031636],["SPY","SPGI","S+P GLOBAL INC",0.00314026],["SPY","T","AT+T INC",0.00313457],["SPY","RTX","RTX CORP",0.00307744],["SPY","DHR","DANAHER CORP",0.00305267],["SPY","PFE","PFIZER INC",0.00303602],["SPY","AMAT","APPLIED MATERIALS INC",0.00291031],["SPY","NEE","NEXTERA ENERGY INC",0.00289823],["SPY","BLK","BLACKROCK INC",0.0028638],["SPY","HON","HONEYWELL INTERNATIONAL INC",0.00285543],["SPY","AMGN","AMGEN INC",0.00283266],["SPY","CMCSA","COMCAST CORP CLASS A",0.0028299],["SPY","BSX","BOSTON SCIENTIFIC CORP",0.00282059],["SPY","UNP","UNION PACIFIC CORP",0.00280328],["SPY","LOW","LOWE S COS INC",0.00279362],["SPY","PGR","PROGRESSIVE CORP",0.00279253],["SPY","PLTR","PALANTIR TECHNOLOGIES INC A",0.00278959],["SPY","C","CITIGROUP INC",0.00276351],["SPY","TJX","TJX COMPANIES INC",0.00273661],["SPY","UBER","UBER TECHNOLOGIES INC",0.00272386],["SPY","ETN","EATON CORP PLC",0.00272017],["SPY","COP","CONOCOPHILLIPS",0.00262189],["SPY","BA","BOEING CO/THE",0.00256113],["SPY","BX","BLACKSTONE INC",0.00250534],["SPY","SYK","STRYKER CORP",0.00249165],["SPY","ANET","ARISTA NETWORKS INC",0.00237999],["SPY","ADP","AUTOMATIC DATA PROCESSING",0.00237227],["SPY","FI","FISERV INC",0.00232891],["SPY","BMY","BRISTOL MYERS SQUIBB CO",0.00229815],["SPY","PANW","PALO ALTO NETWORKS INC",0.00225619],["SPY","GILD","GILEAD SCIENCES INC",0.00221569],["SPY","MU","MICRON TECHNOLOGY INC",0.0021984],["SPY","ADI","ANALOG DEVICES INC",0.00218297],["SPY","SCHW","SCHWAB (CHARLES) CORP",0.00217724],["SPY","VRTX","VERTEX PHARMACEUTICALS INC",0.00211665],["SPY","MDT","MEDTRONIC PLC",0.00211489],["SPY","TMUS","T MOBILE US INC",0.00209526],["SPY","SBUX","STARBUCKS CORP",0.00209355],["SPY","DE","DEERE + CO",0.00208091],["SPY","MMC","MARSH + MCLENNAN COS",0.00207036],["SPY","GEV","GE VERNOVA INC",0.00201486],["SPY","KKR","KKR + CO INC",0.00199439],["SPY","CB","CHUBB LTD",0.00199358],["SPY","LRCX","LAM RESEARCH CORP",0.00197715],["SPY","LMT","LOCKHEED MARTIN CORP",0.00197278],["SPY","PLD","PROLOGIS INC",0.00194893],["SPY","UPS","UNITED PARCEL SERVICE CL B",0.00184911],["SPY","KLAC","KLA CORP",0.00183092],["SPY","EQIX","EQUINIX INC",0.00183046],["SPY","SO","SOUTHERN CO/THE",0.00181428],["SPY","ELV","ELEVANCE HEALTH INC",0.00177224],["SPY","PYPL","PAYPAL HOLDINGS INC",0.0017585],["SPY","MO","ALTRIA GROUP INC",0.00174058],["SPY","TT","TRANE TECHNOLOGIES PLC",0.00173279],["SPY","APH","AMPHENOL CORP CL A",0.00172531],["SPY","INTC","INTEL CORP",0.00171019],["SPY","NKE","NIKE INC  CL B",0.00169291],["SPY","ICE","INTERCONTINENTAL EXCHANGE IN",0.00167845],["SPY","AMT","AMERICAN TOWER CORP",0.00166943],["SPY","DUK","DUKE ENERGY CORP",0.00166644],["SPY","CRWD","CROWDSTRIKE HOLDINGS INC   A",0.00166508],["SPY","CDNS","CADENCE DESIGN SYS INC",0.00165593],["SPY","PH","PARKER HANNIFIN CORP",0.00164717],["SPY","CME","CME GROUP INC",0.0016467],["SPY","CMG","CHIPOTLE MEXICAN GRILL INC",0.00157411],["SPY","SHW","SHERWIN WILLIAMS CO/THE",0.00155986],["SPY","MDLZ","MONDELEZ INTERNATIONAL INC A",0.00155296],["SPY","CI","THE CIGNA GROUP",0.00154975],["SPY","MSI","MOTOROLA SOLUTIONS INC",0.00154228],["SPY","PNC","PNC FINANCIAL SERVICES GROUP",0.00154063],["SPY","REGN","REGENERON PHARMACEUTICALS",0.00154033],["SPY","SNPS","SYNOPSYS INC",0.0015379],["SPY","CEG","CONSTELLATION ENERGY",0.00152047],["SPY","AON","AON PLC CLASS A",0.00152023],["SPY","USB","US BANCORP",0.00150991],["SPY","WM","WASTE MANAGEMENT INC",0.00150453],["SPY","MCK","MCKESSON CORP",0.00149469],["SPY","WELL","WELLTOWER INC",0.00149233],["SPY","ZTS","ZOETIS INC",0.00148492],["SPY","MCO","MOODY S CORP",0.00146753],["SPY","MMM","3M CO",0.00146117],["SPY","APO","APOLLO GLOBAL MANAGEMENT INC",0.00144417],["SPY","EOG","EOG RESOURCES INC",0.00144114],["SPY","TDG","TRANSDIGM GROUP INC",0.00143809],["SPY","CL","COLGATE PALMOLIVE CO",0.00142507],["SPY","AJG","ARTHUR J GALLAGHER + CO",0.00142284],["SPY","ORLY","O REILLY AUTOMOTIVE INC",0.00138849],["SPY","COF","CAPITAL ONE FINANCIAL CORP",0.00137141],["SPY","WMB","WILLIAMS COS INC",0.00137053],["SPY","EMR","EMERSON ELECTRIC CO",0.00136813],["SPY","BDX","BECTON DICKINSON AND CO",0.00135087],["SPY","GD","GENERAL DYNAMICS CORP",0.0013445],["SPY","ITW","ILLINOIS TOOL WORKS",0.00132714],["SPY","CTAS","CINTAS CORP",0.00131623],["SPY","ADSK","AUTODESK INC",0.00127082],["SPY","TGT","TARGET CORP",0.00127003],["SPY","APD","AIR PRODUCTS + CHEMICALS INC",0.00126454],["SPY","NOC","NORTHROP GRUMMAN CORP",0.00126275],["SPY","MAR","MARRIOTT INTERNATIONAL  CL A",0.00125846],["SPY","CSX","CSX CORP",0.00123852],["SPY","FDX","FEDEX CORP",0.00123242],["SPY","FTNT","FORTINET INC",0.00121859],["SPY","OKE","ONEOK INC",0.00119772],["SPY","HLT","HILTON WORLDWIDE HOLDINGS IN",0.00118293],["SPY","ECL","ECOLAB INC",0.00117905],["SPY","TFC","TRUIST FINANCIAL CORP",0.00116372],["SPY","CVS","CVS HEALTH CORP",0.00115408],["SPY","CARR","CARRIER GLOBAL CORP",0.00113922],["SPY","FCX","FREEPORT MCMORAN INC",0.00113829],["SPY","PCAR","PACCAR INC",0.00113372],["SPY","HCA","HCA HEALTHCARE INC",0.00113213],["SPY","BK","BANK OF NEW YORK MELLON CORP",0.00113045],["SPY","ABNB","AIRBNB INC CLASS A",0.00112936],["SPY","DLR","DIGITAL REALTY TRUST INC",0.0011248],["SPY","RCL","ROYAL CARIBBEAN CRUISES LTD",0.00112096],["SPY","GM","GENERAL MOTORS CO",0.00111855],["SPY","AZO","AUTOZONE INC",0.00111413],["SPY","TRV","TRAVELERS COS INC/THE",0.00109939],["SPY","SLB","SCHLUMBERGER LTD",0.00109315],["SPY","ROP","ROPER TECHNOLOGIES INC",0.00109137],["SPY","VST","VISTRA CORP",0.00109125],["SPY","KMI","KINDER MORGAN INC",0.00109062],["SPY","WDAY","WORKDAY INC CLASS A",0.00108197],["SPY","NSC","NORFOLK SOUTHERN CORP",0.00106903],["SPY","SPG","SIMON PROPERTY GROUP INC",0.00106707],["SPY","JCI","JOHNSON CONTROLS INTERNATION",0.00106645],["SPY","NXPI","NXP SEMICONDUCTORS NV",0.00106305],["SPY","SRE","SEMPRA",0.00104528],["SPY","AMP","AMERIPRISE FINANCIAL INC",0.0010351],["SPY","AFL","AFLAC INC",0.00103283],["SPY","ROST","ROSS STORES INC",0.0010232],["SPY","ALL","ALLSTATE CORP",0.00101305],["SPY","CPRT","COPART INC",0.00099285],["SPY","CMI","CUMMINS INC",0.00098446],["SPY","AEP","AMERICAN ELECTRIC POWER",0.00097999],["SPY","MET","METLIFE INC",0.00096078],["SPY","PSX","PHILLIPS 66",0.0009576],["SPY","FICO","FAIR ISAAC CORP",0.00095358],["SPY","GWW","WW GRAINGER INC",0.00094475],["SPY","MSCI","MSCI INC",0.00094133],["SPY","HWM","HOWMET AEROSPACE INC",0.00093227],["SPY","PSA","PUBLIC STORAGE",0.0009288],["SPY","PWR","QUANTA SERVICES INC",0.00091973],["SPY","D","DOMINION ENERGY INC",0.00091479],["SPY","O","REALTY INCOME CORP",0.00091434],["SPY","MPC","MARATHON PETROLEUM CORP",0.00091237],["SPY","PAYX","PAYCHEX INC",0.00089596],["SPY","AIG","AMERICAN INTERNATIONAL GROUP",0.0008887],["SPY","NEM","NEWMONT CORP",0.00088854],["SPY","LULU","LULULEMON ATHLETICA INC",0.00088506],["SPY","DFS","DISCOVER FINANCIAL SERVICES",0.00088076],["SPY","URI","UNITED RENTALS INC",0.00087722],["SPY","EW","EDWARDS LIFESCIENCES CORP",0.0008723],["SPY","TEL","TE CONNECTIVITY PLC",0.00085747],["SPY","BKR","BAKER HUGHES CO",0.00085736],["SPY","FIS","FIDELITY NATIONAL INFO SERV",0.00085206],["SPY","PEG","PUBLIC SERVICE ENTERPRISE GP",0.00084746],["SPY","KMB","KIMBERLY CLARK CORP",0.0008432],["SPY","PRU","PRUDENTIAL FINANCIAL INC",0.00084089],["SPY","RSG","REPUBLIC SERVICES INC",0.00084029],["SPY","PCG","P G + E CORP",0.0008394],["SPY","TRGP","TARGA RESOURCES CORP",0.00083494],["SPY","AXON","AXON ENTERPRISE INC",0.00083441],["SPY","FAST","FASTENAL CO",0.00083345],["SPY","COR","CENCORA INC",0.00082957],["SPY","AME","AMETEK INC",0.00082328],["SPY","DHI","DR HORTON INC",0.00081381],["SPY","KVUE","KENVUE INC",0.00080689],["SPY","VLO","VALERO ENERGY CORP",0.00079049],["SPY","VRSK","VERISK ANALYTICS INC",0.00078978],["SPY","GEHC","GE HEALTHCARE TECHNOLOGY",0.00078608],["SPY","DAL","DELTA AIR LINES INC",0.0007854],["SPY","A","AGILENT TECHNOLOGIES INC",0.00078513],["SPY","LHX","L3HARRIS TECHNOLOGIES INC",0.00078374],["SPY","CTVA","CORTEVA INC",0.00078342],["SPY","KR","KROGER CO",0.000782],["SPY","CBRE","CBRE GROUP INC   A",0.00077862],["SPY","HES","HESS CORP",0.00077079],["SPY","EXC","EXELON CORP",0.00076359],["SPY","IT","GARTNER INC",0.0007629],["SPY","XEL","XCEL ENERGY INC",0.00076042],["SPY","CCI","CROWN CASTLE INC",0.00075851],["SPY","F","FORD MOTOR CO",0.00075832],["SPY","CTSH","COGNIZANT TECH SOLUTIONS A",0.00075182],["SPY","GLW","CORNING INC",0.00073359],["SPY","SYY","SYSCO CORP",0.00073336],["SPY","OTIS","OTIS WORLDWIDE CORP",0.00073133],["SPY","DELL","DELL TECHNOLOGIES  C",0.00073099],["SPY","MNST","MONSTER BEVERAGE CORP",0.00072066],["SPY","IR","INGERSOLL RAND INC",0.00071726],["SPY","YUM","YUM  BRANDS INC",0.00071102],["SPY","IDXX","IDEXX LABORATORIES INC",0.00070608],["SPY","IQV","IQVIA HOLDINGS INC",0.00070262],["SPY","KDP","KEURIG DR PEPPER INC",0.00069882],["SPY","ACGL","ARCH CAPITAL GROUP LTD",0.00069251],["SPY","RMD","RESMED INC",0.00069143],["SPY","OXY","OCCIDENTAL PETROLEUM CORP",0.00068917],["SPY","EA","ELECTRONIC ARTS INC",0.00068639],["SPY","STZ","CONSTELLATION BRANDS INC A",0.00068284],["SPY","UAL","UNITED AIRLINES HOLDINGS INC",0.00068032],["SPY","CHTR","CHARTER COMMUNICATIONS INC A",0.00067376],["SPY","ODFL","OLD DOMINION FREIGHT LINE",0.00067304],["SPY","VMC","VULCAN MATERIALS CO",0.0006725],["SPY","GIS","GENERAL MILLS INC",0.0006685],["SPY","EBAY","EBAY INC",0.00066306],["SPY","WAB","WABTEC CORP",0.00065574],["SPY","ETR","ENTERGY CORP",0.00065489],["SPY","GRMN","GARMIN LTD",0.00064765],["SPY","HUM","HUMANA INC",0.000644],["SPY","NDAQ","NASDAQ INC",0.00064394],["SPY","HPQ","HP INC",0.00064298],["SPY","FANG","DIAMONDBACK ENERGY INC",0.00063734],["SPY","CNC","CENTENE CORP",0.00063611],["SPY","LEN","LENNAR CORP A",0.00063602],["SPY","HIG","HARTFORD FINANCIAL SVCS GRP",0.00063271],["SPY","MTB","M + T BANK CORP",0.00063262],["SPY","WTW","WILLIS TOWERS WATSON PLC",0.00063108],["SPY","MLM","MARTIN MARIETTA MATERIALS",0.00063058],["SPY","ROK","ROCKWELL AUTOMATION INC",0.00062941],["SPY","DECK","DECKERS OUTDOOR CORP",0.00062877],["SPY","EXR","EXTRA SPACE STORAGE INC",0.00062586],["SPY","DXCM","DEXCOM INC",0.00062397],["SPY","DD","DUPONT DE NEMOURS INC",0.00062144],["SPY","ED","CONSOLIDATED EDISON INC",0.00061548],["SPY","EFX","EQUIFAX INC",0.00061382],["SPY","VICI","VICI PROPERTIES INC",0.00060618],["SPY","MPWR","MONOLITHIC POWER SYSTEMS INC",0.00060438],["SPY","MCHP","MICROCHIP TECHNOLOGY INC",0.0006039],["SPY","IRM","IRON MOUNTAIN INC",0.00060205],["SPY","AVB","AVALONBAY COMMUNITIES INC",0.00060178],["SPY","ANSS","ANSYS INC",0.00059898],["SPY","TTWO","TAKE TWO INTERACTIVE SOFTWRE",0.00059882],["SPY","WEC","WEC ENERGY GROUP INC",0.00059785],["SPY","CAH","CARDINAL HEALTH INC",0.00059143],["SPY","CSGP","COSTAR GROUP INC",0.00058333],["SPY","EQT","EQT CORP",0.00058198],["SPY","RJF","RAYMOND JAMES FINANCIAL INC",0.0005817],["SPY","TSCO","TRACTOR SUPPLY COMPANY",0.0005795],["SPY","STT","STATE STREET CORP",0.0005714],["SPY","KEYS","KEYSIGHT TECHNOLOGIES IN",0.00057073],["SPY","HPE","HEWLETT PACKARD ENTERPRISE",0.00057064],["SPY","FITB","FIFTH THIRD BANCORP",0.00056733],["SPY","GPN","GLOBAL PAYMENTS INC",0.00056545],["SPY","XYL","XYLEM INC",0.00056167],["SPY","NUE","NUCOR CORP",0.00055348],["SPY","GDDY","GODADDY INC   CLASS A",0.00055209],["SPY","DOW","DOW INC",0.00054348],["SPY","EIX","EDISON INTERNATIONAL",0.00053666],["SPY","BR","BROADRIDGE FINANCIAL SOLUTIO",0.00053559],["SPY","PPG","PPG INDUSTRIES INC",0.00053529],["SPY","FTV","FORTIVE CORP",0.00053111],["SPY","MTD","METTLER TOLEDO INTERNATIONAL",0.00052432],["SPY","KHC","KRAFT HEINZ CO/THE",0.00052219],["SPY","DOV","DOVER CORP",0.00051236],["SPY","SW","SMURFIT WESTROCK PLC",0.00051231],["SPY","SYF","SYNCHRONY FINANCIAL",0.00051091],["SPY","VLTO","VERALTO CORP",0.00050309],["SPY","CHD","CHURCH + DWIGHT CO INC",0.00050199],["SPY","CCL","CARNIVAL CORP",0.00050097],["SPY","TROW","T ROWE PRICE GROUP INC",0.00050004],["SPY","DTE","DTE ENERGY COMPANY",0.00049989],["SPY","CPAY","CORPAY INC",0.00049625],["SPY","ON","ON SEMICONDUCTOR",0.00049519],["SPY","NVR","NVR INC",0.00049063],["SPY","TYL","TYLER TECHNOLOGIES INC",0.00049059],["SPY","VTR","VENTAS INC",0.00048758],["SPY","WST","WEST PHARMACEUTICAL SERVICES",0.00048679],["SPY","BRO","BROWN + BROWN INC",0.00048543],["SPY","NTAP","NETAPP INC",0.00048229],["SPY","CDW","CDW CORP/DE",0.00048194],["SPY","TPL","TEXAS PACIFIC LAND CORP",0.0004793],["SPY","HSY","HERSHEY CO/THE",0.00047804],["SPY","AWK","AMERICAN WATER WORKS CO INC",0.00047666],["SPY","HBAN","HUNTINGTON BANCSHARES INC",0.0004761],["SPY","ADM","ARCHER DANIELS MIDLAND CO",0.00047531],["SPY","AEE","AMEREN CORPORATION",0.00047512],["SPY","HAL","HALLIBURTON CO",0.00047363],["SPY","PPL","PPL CORP",0.00047352],["SPY","HUBB","HUBBELL INC",0.0004656],["SPY","EQR","EQUITY RESIDENTIAL",0.00046057],["SPY","DVN","DEVON ENERGY CORP",0.00046053],["SPY","PHM","PULTEGROUP INC",0.00045187],["SPY","WBD","WARNER BROS DISCOVERY INC",0.00044793],["SPY","EXPE","EXPEDIA GROUP INC",0.00044734],["SPY","TER","TERADYNE INC",0.00044553],["SPY","WAT","WATERS CORP",0.0004432],["SPY","CINF","CINCINNATI FINANCIAL CORP",0.00044264],["SPY","PTC","PTC INC",0.00044178],["SPY","WDC","WESTERN DIGITAL CORP",0.00044169],["SPY","BIIB","BIOGEN INC",0.00043818],["SPY","K","KELLANOVA",0.00043734],["SPY","ATO","ATMOS ENERGY CORP",0.00043195],["SPY","RF","REGIONS FINANCIAL CORP",0.00043181],["SPY","TDY","TELEDYNE TECHNOLOGIES INC",0.00042919],["SPY","SBAC","SBA COMMUNICATIONS CORP",0.000429],["SPY","DRI","DARDEN RESTAURANTS INC",0.0004273],["SPY","IFF","INTL FLAVORS + FRAGRANCES",0.0004185],["SPY","ES","EVERSOURCE ENERGY",0.00041454],["SPY","STE","STERIS PLC",0.00041288],["SPY","ZBRA","ZEBRA TECHNOLOGIES CORP CL A",0.00040911],["SPY","FSLR","FIRST SOLAR INC",0.00040812],["SPY","LYV","LIVE NATION ENTERTAINMENT IN",0.00040797],["SPY","FE","FIRSTENERGY CORP",0.00040755],["SPY","PKG","PACKAGING CORP OF AMERICA",0.00040639],["SPY","CNP","CENTERPOINT ENERGY INC",0.00040517],["SPY","NTRS","NORTHERN TRUST CORP",0.00040417],["SPY","CBOE","CBOE GLOBAL MARKETS INC",0.00040384],["SPY","ZBH","ZIMMER BIOMET HOLDINGS INC",0.00040318],["SPY","WY","WEYERHAEUSER CO",0.00040113],["SPY","LII","LENNOX INTERNATIONAL INC",0.00040012],["SPY","CTRA","COTERRA ENERGY INC",0.00039889],["SPY","NRG","NRG ENERGY INC",0.00039811],["SPY","CLX","CLOROX COMPANY",0.00039659],["SPY","CMS","CMS ENERGY CORP",0.00039512],["SPY","LUV","SOUTHWEST AIRLINES CO",0.00039386],["SPY","CFG","CITIZENS FINANCIAL GROUP",0.00039361],["SPY","LH","LABCORP HOLDINGS INC",0.00039086],["SPY","ULTA","ULTA BEAUTY INC",0.0003902],["SPY","LDOS","LEIDOS HOLDINGS INC",0.00038783],["SPY","IP","INTERNATIONAL PAPER CO",0.00037887],["SPY","PODD","INSULET CORP",0.00037885],["SPY","LYB","LYONDELLBASELL INDU CL A",0.00037845],["SPY","MKC","MCCORMICK + CO NON VTG SHRS",0.00037549],["SPY","STX","SEAGATE TECHNOLOGY HOLDINGS",0.00037239],["SPY","COO","COOPER COS INC/THE",0.00036571],["SPY","TRMB","TRIMBLE INC",0.00035419],["SPY","SNA","SNAP ON INC",0.00035276],["SPY","ESS","ESSEX PROPERTY TRUST INC",0.00035007],["SPY","WRB","WR BERKLEY CORP",0.00034914],["SPY","MAA","MID AMERICA APARTMENT COMM",0.000349],["SPY","VRSN","VERISIGN INC",0.000349],["SPY","INVH","INVITATION HOMES INC",0.00034852],["SPY","FDS","FACTSET RESEARCH SYSTEMS INC",0.00034724],["SPY","JBL","JABIL INC",0.00034644],["SPY","EL","ESTEE LAUDER COMPANIES CL A",0.00034312],["SPY","DGX","QUEST DIAGNOSTICS INC",0.00034292],["SPY","MOH","MOLINA HEALTHCARE INC",0.0003412],["SPY","LVS","LAS VEGAS SANDS CORP",0.00034118],["SPY","NI","NISOURCE INC",0.00033937],["SPY","KEY","KEYCORP",0.00033828],["SPY","HOLX","HOLOGIC INC",0.00033781],["SPY","J","JACOBS SOLUTIONS INC",0.00032985],["SPY","BLDR","BUILDERS FIRSTSOURCE INC",0.00032944],["SPY","STLD","STEEL DYNAMICS INC",0.00032891],["SPY","PFG","PRINCIPAL FINANCIAL GROUP",0.00032878],["SPY","BBY","BEST BUY CO INC",0.00032812],["SPY","PNR","PENTAIR PLC",0.00032779],["SPY","SMCI","SUPER MICRO COMPUTER INC",0.00032754],["SPY","OMC","OMNICOM GROUP",0.00032743],["SPY","GPC","GENUINE PARTS CO",0.00032317],["SPY","TPR","TAPESTRY INC",0.00031853],["SPY","BALL","BALL CORP",0.00031823],["SPY","TSN","TYSON FOODS INC CL A",0.00031688],["SPY","IEX","IDEX CORP",0.00031618],["SPY","EG","EVEREST GROUP LTD",0.00031576],["SPY","EXPD","EXPEDITORS INTL WASH INC",0.00031514],["SPY","DG","DOLLAR GENERAL CORP",0.00031491],["SPY","MAS","MASCO CORP",0.0003119],["SPY","ALGN","ALIGN TECHNOLOGY INC",0.00030219],["SPY","ARE","ALEXANDRIA REAL ESTATE EQUIT",0.00030209],["SPY","CF","CF INDUSTRIES HOLDINGS INC",0.00030197],["SPY","BAX","BAXTER INTERNATIONAL INC",0.00030191],["SPY","L","LOEWS CORP",0.00030112],["SPY","AVY","AVERY DENNISON CORP",0.00030076],["SPY","FFIV","F5 INC",0.00029986],["SPY","LNT","ALLIANT ENERGY CORP",0.00029845],["SPY","KIM","KIMCO REALTY CORP",0.00029702],["SPY","SWKS","SKYWORKS SOLUTIONS INC",0.00029576],["SPY","GEN","GEN DIGITAL INC",0.00029358],["SPY","MRNA","MODERNA INC",0.00029193],["SPY","DLTR","DOLLAR TREE INC",0.00029072],["SPY","VTRS","VIATRIS INC",0.00028538],["SPY","APTV","APTIV PLC",0.00028501],["SPY","DPZ","DOMINO S PIZZA INC",0.00028416],["SPY","DOC","HEALTHPEAK PROPERTIES INC",0.00028347],["SPY","RVTY","REVVITY INC",0.00028265],["SPY","JBHT","HUNT (JB) TRANSPRT SVCS INC",0.00028257],["SPY","TXT","TEXTRON INC",0.00028121],["SPY","EVRG","EVERGY INC",0.00028004],["SPY","AKAM","AKAMAI TECHNOLOGIES INC",0.00027971],["SPY","AMCR","AMCOR PLC",0.00027596],["SPY","ROL","ROLLINS INC",0.00026031],["SPY","EPAM","EPAM SYSTEMS INC",0.00025844],["SPY","CAG","CONAGRA BRANDS INC",0.00025322],["SPY","KMX","CARMAX INC",0.00025316],["SPY","JKHY","JACK HENRY + ASSOCIATES INC",0.00025282],["SPY","JNPR","JUNIPER NETWORKS INC",0.00025255],["SPY","SWK","STANLEY BLACK + DECKER INC",0.00025109],["SPY","POOL","POOL CORP",0.00024642],["SPY","UDR","UDR INC",0.00024481],["SPY","CHRW","C.H. ROBINSON WORLDWIDE INC",0.00024301],["SPY","TECH","BIO TECHNE CORP",0.00023691],["SPY","CPT","CAMDEN PROPERTY TRUST",0.00023678],["SPY","HST","HOST HOTELS + RESORTS INC",0.00023646],["SPY","INCY","INCYTE CORP",0.00023369],["SPY","REG","REGENCY CENTERS CORP",0.00022906],["SPY","NCLH","NORWEGIAN CRUISE LINE HOLDIN",0.00022785],["SPY","SJM","JM SMUCKER CO/THE",0.0002244],["SPY","UHS","UNIVERSAL HEALTH SERVICES B",0.00022297],["SPY","ALLE","ALLEGION PLC",0.00022262],["SPY","DAY","DAYFORCE INC",0.00022061],["SPY","NDSN","NORDSON CORP",0.00021897],["SPY","FOXA","FOX CORP   CLASS A",0.00021601],["SPY","BG","BUNGE GLOBAL SA",0.00021549],["SPY","AIZ","ASSURANT INC",0.00021011],["SPY","NWSA","NEWS CORP   CLASS A",0.00020779],["SPY","ALB","ALBEMARLE CORP",0.00020528],["SPY","IPG","INTERPUBLIC GROUP OF COS INC",0.00020454],["SPY","EMN","EASTMAN CHEMICAL CO",0.00020386],["SPY","BXP","BXP INC",0.00020319],["SPY","ERIE","ERIE INDEMNITY COMPANY CL A",0.00020036],["SPY","RL","RALPH LAUREN CORP",0.00019483],["SPY","PAYC","PAYCOM SOFTWARE INC",0.00019414],["SPY","TAP","MOLSON COORS BEVERAGE CO   B",0.00019368],["SPY","CRL","CHARLES RIVER LABORATORIES",0.00019166],["SPY","GL","GLOBE LIFE INC",0.00019103],["SPY","SOLV","SOLVENTUM CORP",0.00019044],["SPY","PNW","PINNACLE WEST CAPITAL",0.00018984],["SPY","LKQ","LKQ CORP",0.00018843],["SPY","GNRC","GENERAC HOLDINGS INC",0.00018824],["SPY","ENPH","ENPHASE ENERGY INC",0.00018769],["SPY","HRL","HORMEL FOODS CORP",0.00017684],["SPY","HSIC","HENRY SCHEIN INC",0.00017669],["SPY","AES","AES CORP",0.00017624],["SPY","APA","APA CORP",0.00017513],["SPY","LW","LAMB WESTON HOLDINGS INC",0.00017319],["SPY","MKTX","MARKETAXESS HOLDINGS INC",0.00016563],["SPY","TFX","TELEFLEX INC",0.0001648],["SPY","AOS","SMITH (A.O.) CORP",0.00016316],["SPY","MTCH","MATCH GROUP INC",0.00015957],["SPY","FRT","FEDERAL REALTY INVS TRUST",0.00015729],["SPY","MOS","MOSAIC CO/THE",0.00015721],["SPY","IVZ","INVESCO LTD",0.00015401],["SPY","CPB","THE CAMPBELL S COMPANY",0.00015371],["SPY","WYNN","WYNN RESORTS LTD",0.00014974],["SPY","HAS","HASBRO INC",0.0001496],["SPY","HII","HUNTINGTON INGALLS INDUSTRIE",0.00014865],["SPY","MGM","MGM RESORTS INTERNATIONAL",0.00014754],["SPY","CE","CELANESE CORP",0.00014181],["SPY","DVA","DAVITA INC",0.00013856],["SPY","BWA","BORGWARNER INC",0.00013759],["SPY","CZR","CAESARS ENTERTAINMENT INC",0.00013553],["SPY","WBA","WALGREENS BOOTS ALLIANCE INC",0.00013208],["SPY","BF.B","BROWN FORMAN CORP CLASS B",0.00013073],["SPY","PARA","PARAMOUNT GLOBAL CLASS B",0.0001265],["SPY","FMC","FMC CORP",0.00012558],["SPY","MHK","MOHAWK INDUSTRIES INC",0.00012392],["SPY","FOX","FOX CORP   CLASS B",0.00012296],["SPY","BEN","FRANKLIN RESOURCES INC",0.00012216],["SPY","NWS","NEWS CORP   CLASS B",6.826e-05],["QQQ","AAPL","Apple Inc",0.09329],["QQQ","NVDA","NVIDIA Corp",0.08673],["QQQ","MSFT","Microsoft Corp",0.08116],["QQQ","AMZN","Amazon.com Inc",0.05999],["QQQ","AVGO","Broadcom Inc",0.04515],["QQQ","TSLA","Tesla Inc",0.03731],["QQQ","META","Meta Platforms Inc",0.03498],["QQQ","GOOGL","Alphabet Inc",0.02924],["QQQ","GOOGL","Alphabet Inc",0.02785],["QQQ","COST","Costco Wholesale Corp",0.02661],["QQQ","NFLX","Netflix Inc",0.02296],["QQQ","TMUS","T-Mobile US Inc",0.01572],["QQQ","CSCO","Cisco Systems Inc",0.015],["QQQ","LIN","Linde PLC",0.01264],["QQQ","PEP","PepsiCo Inc",0.01255],["QQQ","ISRG","Intuitive Surgical Inc",0.0125],["QQQ","AMD","Advanced Micro Devices Inc",0.01207],["QQQ","ADBE","Adobe Inc",0.01145],["QQQ","INTU","Intuit Inc",0.01119],["QQQ","QCOM","QUALCOMM Inc",0.01118],["QQQ","TXN","Texas Instruments Inc",0.01112],["QQQ","BKNG","Booking Holdings Inc",0.01006],["QQQ","PLTR","Palantir Technologies Inc",0.0094],["QQQ","HON","Honeywell International Inc",0.0091],["QQQ","AMAT","Applied Materials Inc",0.00907],["QQQ","AMGN","Amgen Inc",0.00904],["QQQ","CMCSA","Comcast Corp",0.0089],["QQQ","ADP","Automatic Data Processing Inc",0.00749],["QQQ","PANW","Palo Alto Networks Inc",0.0073],["QQQ","GILD","Gilead Sciences Inc",0.00718],["QQQ","MU","Micron Technology Inc",0.00709],["QQQ","VRTX","Vertex Pharmaceuticals Inc",0.00676],["QQQ","ADI","Analog Devices Inc",0.00676],["QQQ","SBUX","Starbucks Corp",0.00671],["QQQ","MRVL","Marvell Technology Inc",0.00635],["QQQ","LRCX","Lam Research Corp",0.00616],["QQQ","CEG","Constellation Energy Corp",0.00612],["QQQ","APP","AppLovin Corp",0.0061],["QQQ","KLAC","KLA Corp",0.00586],["QQQ","MELI","MercadoLibre Inc",0.00572],["QQQ","PYPL","PayPal Holdings Inc",0.00536],["QQQ","INTC","Intel Corp",0.00529],["QQQ","CDNS","Cadence Design Systems Inc",0.00526],["QQQ","CRWD","Crowdstrike Holdings Inc",0.00523],["QQQ","CTAS","Cintas Corp",0.00489],["QQQ","SNPS","Synopsys Inc",0.00485],["QQQ","REGN","Regeneron Pharmaceuticals Inc",0.00483],["QQQ","MAR","Marriott International Inc/MD",0.00482],["QQQ","MDLZ","Mondelez International Inc",0.00482],["QQQ","FTNT","Fortinet Inc",0.00465],["QQQ","ORLY","O'Reilly Automotive Inc",0.00443],["QQQ","DASH","DoorDash Inc",0.00424],["QQQ","ASML","ASML Holding NV",0.0042],["QQQ","PDD","PDD Holdings Inc ADR",0.00405],["QQQ","CSX","CSX Corp",0.00393],["QQQ","ADSK","Autodesk Inc",0.00393],["QQQ","MSTR","MicroStrategy Inc",0.00385],["QQQ","ABNB","Airbnb Inc",0.0036],["QQQ","PCAR","PACCAR Inc",0.00358],["QQQ","ROP","Roper Technologies Inc",0.00346],["QQQ","CPRT","Copart Inc",0.00344],["QQQ","TTD","Trade Desk Inc/The",0.00342],["QQQ","WDAY","Workday Inc",0.00341],["QQQ","NXPI","NXP Semiconductors NV",0.00337],["QQQ","FANG","Diamondback Energy Inc",0.00327],["QQQ","ROST","Ross Stores Inc",0.00323],["QQQ","PAYX","Paychex Inc",0.00321],["QQQ","AEP","American Electric Power Co Inc",0.00319],["QQQ","MNST","Monster Beverage Corp",0.0031],["QQQ","CHTR","Charter Communications Inc",0.00305],["QQQ","LULU","Lululemon Athletica Inc",0.00298],["QQQ","DDOG","Datadog Inc",0.00282],["QQQ","AXON","Axon Enterprise Inc",0.00279],["QQQ","BKR","Baker Hughes Co",0.00274],["QQQ","KDP","Keurig Dr Pepper Inc",0.00264],["QQQ","FAST","Fastenal Co",0.00263],["QQQ","TEAM","Atlassian Corp",0.00251],["QQQ","AZN","AstraZeneca PLC ADR",0.0025],["QQQ","GEHC","GE HealthCare Technologies Inc",0.00248],["QQQ","VRSK","Verisk Analytics Inc",0.00243],["QQQ","ODFL","Old Dominion Freight Line Inc",0.00241],["QQQ","EXC","Exelon Corp",0.0024],["QQQ","CTSH","Cognizant Technology Solutions Corp",0.00239],["QQQ","EA","Electronic Arts Inc",0.00237],["QQQ","XEL","Xcel Energy Inc",0.00233],["QQQ","KHC","Kraft Heinz Co/The",0.00221],["QQQ","IDXX","IDEXX Laboratories Inc",0.00219],["QQQ","CCEP","Coca-Cola Europacific Partners PLC",0.00218],["QQQ","TTWO","Take-Two Interactive Software Inc",0.00201],["QQQ","DXCM","Dexcom Inc",0.00195],["QQQ","MCHP","Microchip Technology Inc",0.0019],["QQQ","ANSS","ANSYS Inc",0.00189],["QQQ","ZS","Zscaler Inc",0.00187],["QQQ","CSGP","CoStar Group Inc",0.00184],["QQQ","CDW","CDW Corp/DE",0.00157],["QQQ","WBD","Warner Bros Discovery Inc",0.00153],["QQQ","ON","ON Semiconductor Corp",0.00147],["QQQ","GFS","GLOBALFOUNDRIES Inc",0.00145],["QQQ","BIIB","Biogen Inc",0.00139],["QQQ","MDB","MongoDB Inc",0.00116],["QQQ","ARM","ARM Holdings PLC ADR",0.00115],["DIA","GS","GOLDMAN SACHS GROUP INC",0.08359199],["DIA","UNH","UNITEDHEALTH GROUP INC",0.07559337],["DIA","MSFT","MICROSOFT CORP",0.06118722],["DIA","HD","HOME DEPOT INC",0.05580293],["DIA","CAT","CATERPILLAR INC",0.0520371],["DIA","SHW","SHERWIN WILLIAMS CO/THE",0.04864598],["DIA","CRM","SALESFORCE INC",0.04711255],["DIA","V","VISA INC CLASS A SHARES",0.04505165],["DIA","AXP","AMERICAN EXPRESS CO",0.04364648],["DIA","MCD","MCDONALD S CORP",0.04134778],["DIA","AMGN","AMGEN INC",0.03807772],["DIA","JPM","JPMORGAN CHASE + CO",0.03503969],["DIA","TRV","TRAVELERS COS INC/THE",0.03498781],["DIA","AAPL","APPLE INC",0.03497772],["DIA","IBM","INTL BUSINESS MACHINES CORP",0.03216451],["DIA","AMZN","AMAZON.COM INC",0.03201319],["DIA","HON","HONEYWELL INTERNATIONAL INC",0.03173071],["DIA","BA","BOEING CO/THE",0.0247539],["DIA","PG","PROCTER + GAMBLE CO/THE",0.02336171],["DIA","CVX","CHEVRON CORP",0.02166111],["DIA","JNJ","JOHNSON + JOHNSON",0.02050383],["DIA","NVDA","NVIDIA CORP",0.02019253],["DIA","MMM","3M CO",0.01938835],["DIA","DIS","WALT DISNEY CO/THE",0.01581852],["DIA","MRK","MERCK + CO. INC.",0.0143903],["DIA","WMT","WALMART INC",0.01323014],["DIA","NKE","NIKE INC  CL B",0.01027425],["DIA","KO","COCA COLA CO/THE",0.00889359],["DIA","CSCO","CISCO SYSTEMS INC",0.00853185],["DIA","VZ","VERIZON COMMUNICATIONS INC",0.00551436]],"sec":[["XLB","LIN","Linde plc",0.2112],["XLB","SHW","Sherwin-Williams Co",0.0819],["XLB","APD","Air Products & Chemicals Inc",0.0698],["XLB","ECL","Ecolab Inc",0.062],["XLB","FCX","Freeport-McMoRan Inc",0.06],["XLB","NEM","Newmont Corp",0.0477],["XLB","CTVA","Corteva Inc.",0.042],["XLB","VMC","Vulcan Materials Co",0.0356],["XLB","MLM","Martin Marietta Materials",0.0333],["XLB","DD","DuPont de Nemours Inc.",0.0325],["XLB","NUE","Nucor Corp",0.0297],["XLB","DOW","Dow Inc",0.0289],["XLB","PPG","PPG Industries Inc",0.0281],["XLB","SW","Smurfit WestRock plc",0.0274],["XLB","IFF","Intl Flavors & Fragrances",0.0223],["XLB","PKG","Packaging Corp of America",0.0218],["XLB","LYB","LyondellBasell Industries N.V.",0.0202],["XLB","IP","Intl Paper Co",0.0201],["XLB","STLD","Steel Dynamics Inc",0.0176],["XLB","BALL","Ball Corp",0.0166],["XLB","CF","CF Industries Holdings",0.0165],["XLB","AVY","Avery Dennison Corp",0.0159],["XLB","AMCR","Amcor plc",0.0146],["XLB","ALB","Albemarle Corp",0.0109],["XLB","EMN","Eastman Chemical Co",0.0108],["XLB","MOS","Mosaic Co",0.0084],["XLB","CE","Celanese Corp A",0.0076],["XLB","FMC","FMC Corp",0.0066],["XLC","META","Meta Platforms, Inc. Class A",0.198],["XLC","GOOGL","Alphabet Inc A",0.1098],["XLC","GOOG","Alphabet Inc C",0.09],["XLC","NFLX","NetFlix Inc",0.0646],["XLC","DIS","Walt Disney Co",0.0454],["XLC","TTWO","Take-Two Interactive Software",0.0449],["XLC","T","AT&T Inc",0.0442],["XLC","CMCSA","Comcast Corp A",0.0439],["XLC","TMUS","T-Mobile US Inc",0.0432],["XLC","VZ","Verizon Communications Inc",0.0431],["XLC","CHTR","Charter Communications Inc A",0.0424],["XLC","EA","Electronic Arts",0.0412],["XLC","WBD","Warner Bros Discovery Inc.",0.0366],["XLC","LYV","Live Nation Entertainment Inc.",0.0341],["XLC","OMC","Omnicom Group",0.0271],["XLC","FOXA","Fox Corp A",0.018],["XLC","NWSA","News Corp A",0.0173],["XLC","IPG","Interpublic Group Cos",0.0168],["XLC","MTCH","Match Group, Inc.",0.0131],["XLC","PARA","Paramount Global Class B",0.0105],["XLC","FOX","Fox Corp B",0.0102],["XLC","NWS","News Corp B",0.0057],["XLE","XOM","Exxon Mobil Corp",0.2221],["XLE","CVX","Chevron Corp",0.1574],["XLE","COP","ConocoPhillips",0.0811],["XLE","EOG","EOG Resources",0.047],["XLE","WMB","The Williams Companies Inc",0.0458],["XLE","OKE","ONEOK Inc",0.0426],["XLE","SLB","Schlumberger Ltd",0.0391],["XLE","KMI","Kinder Morgan Inc",0.039],["XLE","PSX","Phillips 66",0.0337],["XLE","MPC","Marathon Petroleum Corp.",0.0328],["XLE","BKR","Baker Hughes Company",0.0307],["XLE","TRGP","Targa Resources Corp",0.0302],["XLE","VLO","Valero Energy Corp",0.0288],["XLE","HES","Hess Corp",0.0282],["XLE","OXY","Occidental Petroleum",0.0248],["XLE","FANG","Diamondback Energy Inc",0.0234],["XLE","EQT","EQT Corporation",0.0209],["XLE","TPL","Texas Pacific Land Corporation",0.0176],["XLE","HAL","Halliburton Co",0.017],["XLE","DVN","Devon Energy Corp",0.0169],["XLE","CTRA","Coterra Energy Inc",0.0147],["XLE","APA","APA Corporation",0.0063],["XLF","BRK.b","Berkshire Hathaway B",0.1223],["XLF","JPM","JP Morgan Chase & Co",0.1018],["XLF","V","Visa Inc A",0.0801],["XLF","MA","Mastercard Inc A",0.0623],["XLF","BAC","Bank of America Corp",0.0454],["XLF","WFC","Wells Fargo & Co",0.0351],["XLF","GS","Goldman Sachs Group Inc",0.0265],["XLF","AXP","American Express Co",0.0246],["XLF","SPGI","S&P Global Inc",0.0231],["XLF","MS","Morgan Stanley",0.0231],["XLF","BLK","BlackRock Inc",0.021],["XLF","PGR","Progressive Corp",0.0208],["XLF","C","Citigroup Inc",0.0204],["XLF","BX","Blackstone Inc.",0.0179],["XLF","FI","Fiserv Inc",0.0172],["XLF","SCHW","Charles Schwab Corp",0.0164],["XLF","MMC","Marsh & McLennan Companies",0.0155],["XLF","CB","Chubb Limited",0.0146],["XLF","KKR","KKR & Co Inc",0.0143],["XLF","PYPL","PayPal Holdings Inc.",0.0126],["XLF","CME","CME Group Inc A",0.0124],["XLF","ICE","Intercontinental Exchange Inc",0.0124],["XLF","AON","Aon plc",0.0114],["XLF","PNC","PNC Finl Services Group",0.0113],["XLF","USB","US Bancorp",0.0111],["XLF","AJG","Arthur J. Gallagher & Co",0.0108],["XLF","MCO","Moody's Corp",0.0106],["XLF","APO","Apollo Global Management Inc.",0.0105],["XLF","COF","Capital One Financial",0.0101],["XLF","TFC","Truist Financial Corp",0.0086],["XLF","BK","The Bank of New York Mellon Corp",0.0083],["XLF","TRV","Travelers Cos Inc",0.008],["XLF","AFL","AFLAC Inc",0.0076],["XLF","AMP","Ameriprise Financial Inc",0.0075],["XLF","ALL","Allstate Corp",0.0072],["XLF","MET","Metlife Inc",0.007],["XLF","MSCI","MSCI Inc",0.0068],["XLF","AIG","American Intl Group Inc",0.0066],["XLF","DFS","Discover Financial Services",0.0064],["XLF","FIS","Fidelity National Information",0.0063],["XLF","PRU","Prudential Financial Inc",0.0061],["XLF","ACGL","Arch Capital Group Ltd",0.0051],["XLF","WTW","Willis Towers Watson PLC",0.0048],["XLF","NDAQ","Nasdaq Inc",0.0047],["XLF","MTB","M&T Bank Corp",0.0047],["XLF","HIG","Hartford Finl Services Group",0.0046],["XLF","RJF","Raymond James Financial Inc",0.0043],["XLF","FITB","Fifth Third Bancorp (OH)",0.0042],["XLF","STT","State Street Corp",0.0041],["XLF","GPN","Global Payments Inc",0.0041],["XLF","SYF","Synchrony Financial",0.0037],["XLF","CPAY","Corpay, Inc.",0.0037],["XLF","BRO","Brown & Brown Inc",0.0036],["XLF","TROW","T Rowe Price Group Inc",0.0036],["XLF","HBAN","Huntington Bancshares (OH)",0.0035],["XLF","CINF","Cincinnati Financial Corp",0.0032],["XLF","RF","Regions Financial Corp",0.0032],["XLF","CBOE","Cboe Global Markets, Inc",0.003],["XLF","NTRS","Northern Trust Corp (IL)",0.003],["XLF","CFG","Citizens Financial Group Inc",0.0029],["XLF","FDS","FactSet Research System Inc",0.0026],["XLF","WRB","WR Berkley Corp",0.0026],["XLF","KEY","KeyCorp",0.0025],["XLF","PFG","Principal Financial Group",0.0024],["XLF","EG","Everest Group Ltd",0.0023],["XLF","L","Loews Corp",0.0022],["XLF","JKHY","Jack Henry & Associates Inc.",0.0019],["XLF","AIZ","Assurant Inc",0.0015],["XLF","ERIE","Erie Indemnity Co A",0.0015],["XLF","GL","Globe Life Inc.",0.0014],["XLF","MKTX","MarketAxess Holdings",0.0012],["XLF","IVZ","Invesco Ltd",0.0011],["XLF","BEN","Franklin Resources Inc",0.0009],["XLI","GE","GE Aerospace",0.0459],["XLI","CAT","Caterpillar Inc",0.0418],["XLI","RTX","RTX Corporation",0.0378],["XLI","HON","Honeywell Intl Inc",0.035],["XLI","UBER","Uber Technologies Inc.",0.0343],["XLI","UNP","Union Pacific Corp",0.0337],["XLI","ETN","Eaton Corp plc",0.0333],["XLI","BA","Boeing Co",0.0317],["XLI","ADP","Automatic Data Processing",0.0288],["XLI","DE","Deere & Co",0.0257],["XLI","GEV","GE Vernova Inc,",0.025],["XLI","LMT","Lockheed Martin",0.0244],["XLI","UPS","United Parcel Service Inc B",0.0223],["XLI","TT","Trane Technologies plc",0.0209],["XLI","PH","Parker-Hannifin Corp",0.02],["XLI","WM","Waste Management Inc",0.0187],["XLI","MMM","3M Co",0.0176],["XLI","TDG","TransDigm Group",0.0175],["XLI","EMR","Emerson Electric Co",0.0166],["XLI","GD","General Dynamics",0.0165],["XLI","ITW","Illinois Tool Works Inc",0.0162],["XLI","CTAS","Cintas Corp",0.016],["XLI","NOC","Northrop Grumman Corp",0.0155],["XLI","CSX","CSX Corporation",0.0151],["XLI","FDX","FedEx Corp",0.015],["XLI","PCAR","PACCAR Inc",0.0138],["XLI","CARR","Carrier Global Corp.",0.0137],["XLI","NSC","Norfolk Southern Corp",0.0131],["XLI","JCI","Johnson Controls International plc",0.013],["XLI","CPRT","Copart Inc",0.012],["XLI","CMI","Cummins Inc",0.012],["XLI","GWW","W.W. Grainger Inc",0.0115],["XLI","PWR","Quanta Services Inc",0.0114],["XLI","HWM","Howmet Aerospace Inc.",0.0113],["XLI","PAYX","Paychex Inc",0.011],["XLI","URI","United Rentals Inc",0.0109],["XLI","DAL","Delta Air Lines",0.0106],["XLI","RSG","Republic Services Inc",0.0104],["XLI","AXON","Axon Enterprise Inc",0.0102],["XLI","FAST","Fastenal Co",0.0101],["XLI","AME","AMETEK Inc",0.0101],["XLI","LHX","L3Harris Technologies Inc",0.0098],["XLI","VRSK","Verisk Analytics Inc",0.0094],["XLI","OTIS","Otis Worldwide Corp",0.0089],["XLI","UAL","United Airlines Holding, Inc",0.0087],["XLI","IR","Ingersoll Rand Inc.",0.0087],["XLI","ODFL","Old Dominion Freight Line Inc",0.0082],["XLI","WAB","Wabtec",0.008],["XLI","ROK","Rockwell Automation Inc",0.0076],["XLI","EFX","Equifax Inc",0.0075],["XLI","XYL","Xylem Inc",0.0068],["XLI","FTV","Fortive Corp",0.0064],["XLI","BR","Broadridge Financial Solutions Inc.",0.0064],["XLI","DOV","Dover Corp",0.0062],["XLI","VLTO","Veralto Corp",0.0061],["XLI","HUBB","Hubbell Inc",0.0056],["XLI","LDOS","Leidos Holdings Inc",0.0049],["XLI","LUV","Southwest Airlines Co",0.0049],["XLI","LII","Lennox International Inc",0.0048],["XLI","SNA","Snap On Inc",0.0043],["XLI","J","Jacobs Solutions Inc.",0.0041],["XLI","BLDR","Builders FirstSource",0.004],["XLI","PNR","Pentair PLC",0.004],["XLI","IEX","IDEX Corp",0.0039],["XLI","MAS","Masco Corp",0.0038],["XLI","EXPD","Expeditors Intl of WA Inc",0.0038],["XLI","TXT","Textron Inc",0.0035],["XLI","JBHT","J.B. Hunt Transport Services",0.0034],["XLI","ROL","Rollins Inc",0.0032],["XLI","SWK","Stanley Black & Decker",0.003],["XLI","CHRW","CH Robinson Worldwide Inc",0.003],["XLI","DAY","Dayforce, Inc.",0.0027],["XLI","ALLE","Allegion plc",0.0027],["XLI","NDSN","Nordson Corp",0.0027],["XLI","PAYC","Paycom Software Inc",0.0024],["XLI","GNRC","Generac Holdings Inc",0.0023],["XLI","AOS","A.O. Smith Corp",0.002],["XLI","HII","Huntington Ingalls Industries Inc.",0.0018],["XLK","AAPL","Apple Inc.",0.1485],["XLK","NVDA","Nvidia Corp",0.1383],["XLK","MSFT","Microsoft Corp",0.1292],["XLK","AVGO","Broadcom Inc",0.0576],["XLK","CRM","Salesforce, Inc.",0.0331],["XLK","ORCL","Oracle Corp",0.0271],["XLK","CSCO","Cisco Systems Inc",0.0255],["XLK","ACN","Accenture plc A",0.0238],["XLK","NOW","ServiceNow Inc.",0.023],["XLK","IBM","Intl Business Machines Corp",0.0222],["XLK","AMD","Advanced Micro Devices",0.0205],["XLK","ADBE","Adobe Inc.",0.0195],["XLK","INTU","Intuit Inc",0.0191],["XLK","QCOM","QUALCOMM Inc",0.019],["XLK","TXN","Texas Instruments Inc",0.0189],["XLK","AMAT","Applied Materials Inc",0.0154],["XLK","PLTR","Palantir Technologies Inc. Class A",0.015],["XLK","ANET","Arista Networks Inc",0.0129],["XLK","PANW","Palo Alto Networks Inc.",0.0124],["XLK","MU","Micron Technology Inc",0.012],["XLK","ADI","Analog Devices Inc",0.0115],["XLK","LRCX","Lam Research Corp",0.0105],["XLK","KLAC","KLA Corporation",0.01],["XLK","APH","Amphenol Corp A",0.0092],["XLK","INTC","Intel Corp",0.009],["XLK","CDNS","Cadence Design Systems Inc",0.0089],["XLK","CRWD","CrowdStrike Holdings, Inc.",0.0089],["XLK","MSI","Motorola Solutions Inc",0.0083],["XLK","SNPS","Synopsys Inc",0.0083],["XLK","ADSK","Autodesk Inc",0.0067],["XLK","FTNT","Fortinet Inc",0.0066],["XLK","ROP","Roper Technologies, Inc",0.0059],["XLK","WDAY","Workday Inc. A",0.0058],["XLK","NXPI","NXP Semiconductor NV",0.0057],["XLK","FICO","Fair Isaac & Co Inc",0.0051],["XLK","TEL","TE Connectivity plc",0.0046],["XLK","IT","Gartner Inc",0.0041],["XLK","CTSH","Cognizant Tech Solutions Corp",0.0041],["XLK","GLW","Corning Inc",0.004],["XLK","DELL","Dell Technologies Inc-C",0.0038],["XLK","HPQ","HP Inc",0.0035],["XLK","MCHP","Microchip Technology Inc",0.0032],["XLK","ANSS","ANSYS Inc",0.0032],["XLK","MPWR","Monolithic Power Systems",0.0031],["XLK","HPE","Hewlett Packard Enterprise Co",0.0031],["XLK","KEYS","Keysight Technologies Inc",0.0031],["XLK","GDDY","GoDaddy Inc A",0.003],["XLK","CDW","CDW Corp",0.0027],["XLK","TYL","Tyler Technologies Inc",0.0026],["XLK","NTAP","NetApp Inc",0.0026],["XLK","ON","On Semiconductor Corp",0.0025],["XLK","PTC","PTC Inc",0.0024],["XLK","TER","Teradyne Inc",0.0024],["XLK","WDC","Western Digital Corp",0.0024],["XLK","TDY","Teledyne Technologies Inc",0.0023],["XLK","FSLR","First Solar Inc",0.0022],["XLK","ZBRA","Zebra Technologies Corp",0.0022],["XLK","STX","Seagate Technology",0.0021],["XLK","JBL","Jabil Inc",0.0019],["XLK","TRMB","Trimble Inc",0.0019],["XLK","VRSN","VeriSign Inc",0.0019],["XLK","SMCI","Super Micro Computer Inc",0.0018],["XLK","FFIV","F5, Inc.",0.0016],["XLK","GEN","Gen Digital Inc.",0.0016],["XLK","SWKS","Skyworks Solutions Inc",0.0016],["XLK","AKAM","Akamai Technologies Inc",0.0015],["XLK","EPAM","EPAM Systems Inc",0.0014],["XLK","JNPR","Juniper Networks Inc",0.0014],["XLK","ENPH","Enphase Energy Inc",0.001],["XLP","COST","Costco Wholesale Corp",0.1046],["XLP","WMT","Walmart Inc.",0.1017],["XLP","PG","Procter & Gamble",0.0941],["XLP","KO","Coca-Cola Co",0.0596],["XLP","PEP","PepsiCo Inc",0.0493],["XLP","PM","Philip Morris International",0.0459],["XLP","MO","Altria Group Inc",0.0447],["XLP","CL","Colgate-Palmolive Co",0.0444],["XLP","MDLZ","Mondelez International Inc",0.0429],["XLP","TGT","Target Corp",0.0411],["XLP","KMB","Kimberly-Clark",0.0261],["XLP","KVUE","Kenvue Inc.",0.0252],["XLP","KR","Kroger Co",0.0248],["XLP","SYY","Sysco Corp",0.0228],["XLP","MNST","Monster Beverage Corporation",0.0219],["XLP","KDP","Keurig Dr Pepper Inc",0.0215],["XLP","GIS","General Mills Inc",0.0205],["XLP","STZ","Constellation Brands Inc A",0.0179],["XLP","KHC","The Kraft Heinz Company",0.0159],["XLP","CHD","Church & Dwight Co",0.0157],["XLP","ADM","Archer-Daniels-Midland Co",0.0154],["XLP","HSY","Hershey Foods Corp",0.0147],["XLP","K","Kellanova",0.0138],["XLP","CLX","Clorox Co",0.0123],["XLP","MKC","McCormick & Co",0.0113],["XLP","EL","Estee Lauder Cos. A",0.0108],["XLP","DG","Dollar General Corp",0.0099],["XLP","TSN","Tyson Foods Inc A",0.0098],["XLP","DLTR","Dollar Tree Inc",0.0093],["XLP","CAG","Conagra Brands, Inc",0.0078],["XLP","BG","Bunge Global SA",0.0071],["XLP","SJM","J.M. Smucker Co",0.0068],["XLP","TAP","Molson Coors Beverage Co B",0.0058],["XLP","HRL","Hormel Foods Corp",0.0055],["XLP","LW","Lamb Weston Holdings Inc",0.0055],["XLP","WBA","Walgreens Boots Alliance Inc",0.0053],["XLP","CPB","The Campbell's Company",0.0047],["XLP","BF.b","Brown-Forman Corp B",0.0039],["XLRE","PLD","ProLogis Inc",0.0955],["XLRE","EQIX","Equinix Inc",0.0864],["XLRE","AMT","American Tower Corp A",0.0806],["XLRE","WELL","Welltower Inc",0.0734],["XLRE","DLR","Digital Realty Trust",0.0538],["XLRE","SPG","Simon Property Group A",0.0522],["XLRE","PSA","Public Storage",0.0453],["XLRE","O","Realty Income Corp",0.045],["XLRE","CBRE","CBRE Group Inc.",0.037],["XLRE","CCI","Crown Castle Inc.",0.0365],["XLRE","EXR","Extra Space Storage Inc",0.031],["XLRE","AVB","AvalonBay Communities Inc",0.0298],["XLRE","VICI","VICI Properties Inc.",0.0296],["XLRE","IRM","Iron Mountain Inc",0.0295],["XLRE","CSGP","Costar Group Inc",0.0285],["XLRE","VTR","Ventas Inc",0.024],["XLRE","EQR","Equity Residential",0.0228],["XLRE","SBAC","SBA Communications Corp",0.0206],["XLRE","WY","Weyerhaeuser Co",0.0197],["XLRE","ESS","Essex Property Trust",0.0174],["XLRE","MAA","Mid-America Apt Communties",0.0172],["XLRE","INVH","Invitation Homes",0.0172],["XLRE","ARE","Alexandria Real Estate Eqty",0.0147],["XLRE","KIM","Kimco Realty Corp",0.0145],["XLRE","DOC","Healthpeak Properties Inc.",0.0137],["XLRE","UDR","UDR Inc",0.012],["XLRE","HST","Host Hotels & Resorts Inc",0.0119],["XLRE","CPT","Camden Property Trust",0.0116],["XLRE","REG","Regency Centers Corp",0.0112],["XLRE","BXP","BXP, Inc.",0.0099],["XLRE","FRT","Federal Realty Invt Trust",0.0077],["XLU","NEE","NextEra Energy Inc",0.1198],["XLU","CEG","Constellation Energy Corp",0.0825],["XLU","SO","Southern Co",0.077],["XLU","DUK","Duke Energy Corp",0.0707],["XLU","VST","Vistra Corp.",0.049],["XLU","SRE","Sempra",0.0431],["XLU","AEP","American Electric Power",0.043],["XLU","D","Dominion Energy Inc",0.0388],["XLU","PEG","Public Service Enterprise Grp",0.0363],["XLU","PCG","PG&E Corporation",0.0324],["XLU","EXC","Exelon Corp",0.0324],["XLU","XEL","Xcel Energy Inc",0.0315],["XLU","ETR","Entergy Corp",0.0282],["XLU","ED","Consolidated Edison Inc",0.0264],["XLU","WEC","WEC Energy Group Inc",0.0255],["XLU","EIX","Edison Intl",0.0218],["XLU","DTE","DTE Energy Co",0.0213],["XLU","AWK","American Water Works Co Inc",0.0204],["XLU","AEE","Ameren Corp",0.0203],["XLU","PPL","PPL Corp",0.0202],["XLU","ATO","Atmos Energy Corp",0.0184],["XLU","ES","Eversource Energy",0.0176],["XLU","CNP","Centerpoint Energy Inc",0.0176],["XLU","NRG","NRG Energy",0.0174],["XLU","FE","FirstEnergy Corp",0.0172],["XLU","CMS","CMS Energy Corp",0.0168],["XLU","NI","Nisource Inc",0.0145],["XLU","LNT","Alliant Energy Corp",0.0126],["XLU","EVRG","Evergy Inc.",0.0119],["XLU","PNW","Pinnacle West Capital (AZ)",0.008],["XLU","AES","AES Corp",0.0074],["XLV","LLY","Eli Lilly & Co",0.1235],["XLV","UNH","Unitedhealth Group Inc",0.0939],["XLV","JNJ","Johnson & Johnson",0.067],["XLV","ABBV","AbbVie Inc.",0.0607],["XLV","MRK","Merck & Co Inc",0.0492],["XLV","TMO","Thermo Fisher Scientific",0.0407],["XLV","ISRG","Intuitive Surgical Inc",0.0382],["XLV","ABT","Abbott Laboratories",0.0382],["XLV","PFE","Pfizer Inc",0.0297],["XLV","DHR","Danaher Corp",0.0296],["XLV","AMGN","Amgen Inc",0.0276],["XLV","BSX","Boston Scientific Corp",0.0274],["XLV","SYK","Stryker Corp",0.0246],["XLV","BMY","Bristol-Myers Squibb",0.0222],["XLV","GILD","Gilead Sciences Inc",0.022],["XLV","VRTX","Vertex Pharmaceuticals Inc",0.0207],["XLV","MDT","Medtronic plc",0.0203],["XLV","ELV","Elevance Health, Inc.",0.0173],["XLV","CI","The Cigna Group",0.0152],["XLV","MCK","McKesson Corp",0.0145],["XLV","ZTS","Zoetis Inc",0.0144],["XLV","REGN","Regeneron Pharmaceuticals Inc",0.0144],["XLV","BDX","Becton Dickinson & Co",0.0132],["XLV","CVS","CVS Health Corporation",0.0118],["XLV","HCA","HCA Healthcare Inc",0.0108],["XLV","EW","Edwards Lifesciences Corp",0.0085],["XLV","COR","Cencora, Inc.",0.0081],["XLV","A","Agilent Technologies Inc",0.0077],["XLV","GEHC","GE Healthcare Technologies Inc.",0.0076],["XLV","IQV","IQVIA Holdings Inc",0.0069],["XLV","RMD","ResMed Inc",0.0067],["XLV","IDXX","IDEXX Laboratories Inc",0.0067],["XLV","HUM","Humana Inc",0.0063],["XLV","CNC","Centene Corp",0.0061],["XLV","DXCM","DexCom Inc",0.006],["XLV","CAH","Cardinal Health Inc",0.0058],["XLV","MTD","Mettler-Toledo Intl",0.005],["XLV","WST","West Pharmaceutical Services Inc",0.0047],["XLV","WAT","Waters Corp",0.0044],["XLV","BIIB","Biogen Inc",0.0043],["XLV","ZBH","Zimmer Biomet Holdings Inc",0.0041],["XLV","STE","STERIS plc",0.004],["XLV","LH","Labcorp Holdings Inc.",0.0038],["XLV","PODD","INSULET CORP",0.0037],["XLV","COO","Cooper Companies Inc",0.0035],["XLV","DGX","Quest Diagnostics",0.0033],["XLV","HOLX","Hologic Inc",0.0033],["XLV","MOH","Molina Healthcare",0.0032],["XLV","BAX","Baxter Intl Inc",0.0029],["XLV","ALGN","Align Technology Inc",0.0029],["XLV","MRNA","Moderna, Inc.",0.0028],["XLV","VTRS","Viatris Inc",0.0027],["XLV","RVTY","Revvity, Inc.",0.0027],["XLV","TECH","Bio-Techne Corp",0.0023],["XLV","INCY","Incyte Corp",0.0022],["XLV","UHS","Universal Health Services B",0.0021],["XLV","CRL","Charles River Laboratories International Inc.",0.0019],["XLV","SOLV","Solventum Corp.",0.0018],["XLV","HSIC","Henry Schein Inc",0.0017],["XLV","TFX","Teleflex Inc",0.0016],["XLV","DVA","DaVita Inc",0.0014],["XLY","AMZN","Amazon.com Inc",0.2099],["XLY","TSLA","Tesla, Inc",0.1791],["XLY","HD","Home Depot Inc",0.0629],["XLY","MCD","McDonald's Corp",0.0459],["XLY","BKNG","Booking Holdings Inc",0.0431],["XLY","LOW","Lowe's Cos Inc",0.0394],["XLY","TJX","TJX Cos Inc",0.0379],["XLY","SBUX","Starbucks Corp",0.0293],["XLY","NKE","NIKE Inc B",0.0237],["XLY","CMG","Chipotle Mexican Grill Inc.",0.0215],["XLY","ORLY","O'Reilly Automotive",0.0193],["XLY","MAR","Marriott Intl A",0.0175],["XLY","HLT","Hilton Worldwide Holdings  Inc",0.0164],["XLY","RCL","Royal Caribbean Group",0.0157],["XLY","ABNB","Airbnb, Inc. Class A",0.0157],["XLY","AZO","AutoZone Inc",0.0154],["XLY","GM","General Motors Company",0.0153],["XLY","ROST","Ross Stores Inc",0.0141],["XLY","LULU","Lululemon Athletica inc",0.0125],["XLY","DHI","Horton D.R. Inc",0.0111],["XLY","F","Ford Motor Co",0.0105],["XLY","YUM","Yum! Brands Inc",0.0096],["XLY","GRMN","Garmin Ltd",0.009],["XLY","EBAY","eBay Inc.",0.0088],["XLY","DECK","Deckers Outdoor",0.0088],["XLY","LEN","Lennar Corp A",0.0087],["XLY","TSCO","Tractor Supply Co",0.0082],["XLY","CCL","Carnival Corp",0.0071],["XLY","NVR","NVR Inc",0.0067],["XLY","EXPE","Expedia Group, Inc.",0.0062],["XLY","PHM","Pulte Group Inc",0.0062],["XLY","DRI","Darden Restaurants Inc",0.0059],["XLY","ULTA","Ulta Beauty, Inc",0.0055],["XLY","LVS","Las Vegas Sands",0.0046],["XLY","BBY","Best Buy Co Inc",0.0046],["XLY","GPC","Genuine Parts Co",0.0045],["XLY","TPR","Tapestry, Inc",0.0044],["XLY","APTV","Aptiv plc",0.0039],["XLY","DPZ","Domino's Pizza Inc",0.0039],["XLY","POOL","Pool Corp",0.0035],["XLY","KMX","Carmax Inc",0.0034],["XLY","NCLH","Norwegian Cruise Line Holdings Ltd",0.0032],["XLY","RL","Ralph Lauren Corp A",0.0027],["XLY","LKQ","LKQ Corp",0.0026],["XLY","WYNN","Wynn Resorts Ltd",0.0021],["XLY","HAS","Hasbro Inc",0.0021],["XLY","MGM","MGM Resorts International",0.002],["XLY","BWA","Borgwarner Inc",0.0019],["XLY","CZR","Caesars Entertainment, Inc.",0.0019],["XLY","MHK","Mohawk Industries Inc",0.0017]]};
+</script>
+<script>
+(function () {
+  'use strict';
+  const S = window.Scanner;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pct = (w, d = 2) => (w == null || isNaN(w)) ? '' : (w * 100).toFixed(d) + '%';
+
+  const PAGES = {
+    SPY: 'https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-500-etf-trust-spy',
+    DIA: 'https://www.ssga.com/us/en/intermediary/etfs/spdr-dow-jones-industrial-average-etf-trust-dia',
+    QQQ: 'https://www.invesco.com/qqq-etf/en/about.html'
+  };
+  // QQQ has no spreadsheet download; its holdings page reads this JSON feed. Save it and drop it in.
+  const QQQ_DATA = 'https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46090E103/holdings/fund?idType=cusip&productType=ETF';
+  const directLink = (t) => t === 'QQQ' ? QQQ_DATA
+    : 'https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-' + t.toLowerCase() + '.xlsx';
+  const links = (t) => '<a href="' + directLink(t) + '" target="_blank" rel="noopener">' + (t === 'QQQ' ? 'Holdings data' : 'Download file') + '</a>' +
+    (t === 'QQQ' ? '<a href="' + PAGES.QQQ + '" target="_blank" rel="noopener">Holdings page</a>' : '');
+
+  const state = {
+    funds: {}, rules: S.cloneRules(), server: false, tiles: {}, notices: [], pending: [],
+    result: null, sectorSort: 'weight', idxSort: { key: 'norm', dir: -1 }, animate: false, label: '',
+    mode: 'manual', published: null
+  };
+
+  /* ---------- dates ---------- */
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function parseDate(s) {
+    if (!s) return null;
+    s = String(s).trim();
+    let m = s.match(/^(\d{1,2})[- ]([A-Za-z]{3})[a-z]*[- ,]+(\d{4})/);
+    if (m) return new Date(+m[3], MONTHS.indexOf(m[2][0].toUpperCase() + m[2].slice(1, 3).toLowerCase()), +m[1]);
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return new Date(+m[3], +m[1] - 1, +m[2]);
+    return null;
+  }
+  const fmtDate = (d) => d ? d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() : '';
+  const fileDate = (d) => d ? String(d.getDate()).padStart(2, '0') + '-' + MONTHS[d.getMonth()] + '-' + d.getFullYear() : '';
+  function niceAsOf(s) { const d = parseDate(s); return d ? fmtDate(d) : (s || ''); }
+
+  /* ---------- reading files ---------- */
+  function parseBuffer(buf, filename, kind) {
+    const u8 = new Uint8Array(buf);
+    let i = 0; while (i < u8.length && (u8[i] === 32 || u8[i] === 10 || u8[i] === 13 || u8[i] === 9 || u8[i] === 0xEF || u8[i] === 0xBB || u8[i] === 0xBF)) i++;
+    if (kind === 'json' || u8[i] === 123 || u8[i] === 91) {
+      const aoa = S.jsonToAoa(JSON.parse(new TextDecoder().decode(u8)));
+      return aoa ? S.parseSheet(aoa, filename) : [];
+    }
+    const wb = XLSX.read(u8, { type: 'array' });
+    let out = [];
+    wb.SheetNames.forEach(n => {
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: null });
+      out = out.concat(S.parseSheet(aoa, filename));
+    });
+    return out;
+  }
+
+  function ingest(parsed, filename, source) {
+    if (!parsed.length) {
+      state.notices.push({ bad: true, text: 'No holdings table found in ' + filename + '. Expected a file with Ticker and Weight columns.' });
+      return;
+    }
+    parsed.forEach(p => {
+      if (p.fund === '?') { state.pending.push(Object.assign({ filename }, p)); return; }
+      const asOf = p.asOf || (String(filename).match(/\d{1,2}-[A-Za-z]{3}-\d{4}|\d{4}-\d{2}-\d{2}/) || [])[0] || null;
+      state.funds[p.fund] = S.buildFund(p.fund, p.rows, { asOf: asOf, source: source || filename });
+      state.tiles[p.fund] = { state: 'ok' };
+    });
+  }
+
+  async function addFiles(files) {
+    for (const f of files) {
+      try { ingest(parseBuffer(await f.arrayBuffer(), f.name), f.name, f.name); }
+      catch (e) { state.notices.push({ bad: true, text: 'Could not read ' + f.name + ': ' + e.message }); }
+    }
+    state.label = '';
+    state.animate = true;
+    render();
+  }
+
+  function loadSample() {
+    state.funds = {}; state.tiles = {}; state.notices = []; state.pending = [];
+    const group = (rows) => rows.reduce((m, r) => ((m[r[0]] = m[r[0]] || []).push({ sym: r[1], name: r[2], w: r[3] }), m), {});
+    const g = Object.assign(group(SAMPLE.idx), group(SAMPLE.sec));
+    Object.keys(g).forEach(f => {
+      state.funds[f] = S.buildFund(f, g[f], { asOf: SAMPLE.asOf, source: 'sample' });
+      state.tiles[f] = { state: 'ok' };
+    });
+    state.label = 'Sample workbook, ';
+    state.animate = true;
+    render();
+  }
+
+  async function fetchAll(refresh) {
+    const btn = $('btnFetch');
+    btn.disabled = true; btn.textContent = 'Fetching files';
+    state.notices = []; state.label = '';
+    S.ALL_FUNDS.forEach(f => { state.tiles[f] = { state: 'loading' }; });
+    renderTiles();
+    const queue = S.ALL_FUNDS.slice();
+    async function worker() {
+      while (queue.length) {
+        const t = queue.shift();
+        try {
+          const res = await fetch('/api/holdings/' + t + (refresh ? '?refresh=1' : ''));
+          if (!res.ok) {
+            let msg = 'HTTP ' + res.status;
+            try { msg = (await res.json()).error || msg; } catch (e) { /* not json */ }
+            throw new Error(msg);
+          }
+          const parsed = parseBuffer(await res.arrayBuffer(), t.toLowerCase() + '.' + (res.headers.get('X-File-Kind') || 'xlsx'), res.headers.get('X-File-Kind'));
+          parsed.forEach(p => { if (p.fund === '?') p.fund = t; });
+          const mine = parsed.filter(p => p.fund === t);
+          if (!mine.length) throw new Error('file had no holdings table');
+          ingest(mine, t, res.headers.get('X-Source') || 'server');
+        } catch (e) {
+          delete state.funds[t];
+          state.tiles[t] = { state: 'error', msg: 'Download failed' };
+          state.notices.push({ bad: true, text: t + ' could not be fetched (' + e.message.slice(0, 160) + '). Download it from its tile and drop it on the page.' });
+        }
+        renderTiles();
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    btn.disabled = false; btn.textContent = 'Fetch latest files';
+    state.animate = true;
+    render();
+    $('live').textContent = 'Scan finished.';
+  }
+
+  /* Published mode: a GitHub Pages copy that ships today's files in ./data */
+  async function loadPublished() {
+    const btn = $('btnFetch');
+    btn.disabled = true; btn.textContent = 'Loading data';
+    state.notices = []; state.label = ''; state.funds = {};
+    let man;
+    try {
+      const res = await fetch('data/manifest.json', { cache: 'no-cache' });
+      man = await res.json();
+    } catch (e) {
+      state.notices.push({ bad: true, text: 'The published data could not be loaded. Drop files here instead.' });
+      btn.disabled = false; btn.textContent = 'Reload data'; render(); return;
+    }
+    state.published = man;
+    S.ALL_FUNDS.forEach(f => { state.tiles[f] = { state: man.files[f] ? 'loading' : 'error', msg: 'Not downloaded today' }; });
+    renderTiles();
+    await Promise.all(Object.keys(man.files).map(async (t) => {
+      const info = man.files[t];
+      try {
+        const res = await fetch('data/' + info.file, { cache: 'no-cache' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const kind = info.file.split('.').pop();
+        const parsed = parseBuffer(await res.arrayBuffer(), t.toLowerCase() + '.' + kind, kind);
+        parsed.forEach(p => { if (p.fund === '?') p.fund = t; });
+        const mine = parsed.filter(p => p.fund === t);
+        if (!mine.length) throw new Error('file had no holdings table');
+        ingest(mine, t, info.source);
+      } catch (e) {
+        state.tiles[t] = { state: 'error', msg: 'Could not read file' };
+      }
+    }));
+    const missing = S.ALL_FUNDS.filter(f => !state.funds[f]);
+    if (missing.length) {
+      state.notices.push({ bad: true, text: missing.join(', ') + ' could not be downloaded automatically. Use the tile links to get the file and drop it here.' });
+    }
+    btn.disabled = false; btn.textContent = 'Reload data';
+    state.animate = true;
+    setHint();
+    render();
+  }
+
+  /* ---------- rendering ---------- */
+  function renderTiles() {
+    const tile = (t) => {
+      const fd = state.funds[t];
+      const ts = state.tiles[t] || { state: fd ? 'ok' : 'missing' };
+      let stat;
+      if (ts.state === 'ok' && fd) stat = '<span class="tstat">' + fd.count + ' holdings' + (fd.asOf ? ', ' + esc(niceAsOf(fd.asOf)) : '') + '</span>';
+      else if (ts.state === 'loading') stat = '<span class="tstat">Downloading</span>';
+      else if (ts.state === 'error') stat = '<span class="tstat">' + esc(ts.msg) + '</span>' + links(t);
+      else stat = links(t);
+      return '<div class="tile" data-state="' + (fd ? 'ok' : ts.state) + '"><b><span class="dot"></span>' + t + '</b><span class="tname">' + esc(S.FUND_NAMES[t]) + '</span>' + stat + '</div>';
+    };
+    $('tilesIndex').innerHTML = S.INDEX_FUNDS.map(tile).join('');
+    $('tilesSector').innerHTML = S.SECTOR_FUNDS.map(tile).join('');
+  }
+
+  function renderNotices() {
+    const items = state.notices.map(n => '<div class="notice' + (n.bad ? ' bad' : '') + '">' + esc(n.text) + '</div>');
+    state.pending.forEach((p, i) => {
+      items.push('<div class="notice">Which fund is <strong>' + esc(p.filename) + '</strong> (' + p.rows.length + ' rows)?' +
+        '<select data-pending="' + i + '"><option value="">Choose fund</option>' +
+        S.ALL_FUNDS.map(f => '<option>' + f + '</option>').join('') + '</select></div>');
+    });
+    // Date mismatch check
+    const dates = {};
+    Object.values(state.funds).forEach(f => { const d = niceAsOf(f.asOf); if (d) (dates[d] = dates[d] || []).push(f.fund); });
+    const keys = Object.keys(dates);
+    if (keys.length > 1) {
+      items.push('<div class="notice">Files have different dates: ' + keys.map(k => esc(k) + ' (' + dates[k].join(', ') + ')').join('; ') + '.</div>');
+    }
+    $('notices').innerHTML = items.join('');
+  }
+
+  function renderHeader() {
+    const loaded = Object.keys(state.funds);
+    if (!loaded.length) { $('asof').textContent = 'No holdings loaded yet'; return; }
+    const counts = {};
+    Object.values(state.funds).forEach(f => { const d = niceAsOf(f.asOf); if (d) counts[d] = (counts[d] || 0) + 1; });
+    const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    $('asof').innerHTML = (top ? (state.label ? 'Sample workbook, holdings' : 'Holdings') + ' as of <strong>' + esc(top) + '</strong>, ' : '') + loaded.length + ' of 14 funds loaded';
+  }
+
+  function rulesText() {
+    const r = state.rules;
+    $('idxRules').textContent = 'SPY at least ' + r.index.SPY + '%, QQQ at least ' + r.index.QQQ + '%, DIA at least ' + r.index.DIA +
+      '%. Each index keeps at least ' + r.index.coverage + '% of its weight. Final list needs a normalized weight of at least ' + r.index.normalized + '%.';
+    $('secRules').textContent = 'XLF and XLI at least ' + r.sector.XLF + '%, XLK XLP XLV XLY at least ' + r.sector.XLK +
+      '%, the rest at least ' + r.sector.XLB + '%. Each sector and the overall total keep at least ' + r.sector.coverage + '% (ideally ' + r.sector.ideal + '%).';
+  }
+
+  function railRow(opts) {
+    // opts: {key, sub, eligible, coverage, cls, marks:[{at, label, ideal}], figure, note, missing}
+    const segs = opts.missing ? '' : opts.eligible.map(h =>
+      '<i style="width:' + (h.w / Math.max(opts.coverage, 1e-9) * 100).toFixed(4) + '%" title="' + esc(h.sym) + ' ' + pct(h.w) + '"></i>').join('');
+    const marks = opts.marks.map(m => '<div class="mark' + (m.ideal ? ' ideal' : '') + '" style="left:' + (m.at * 100) + '%"><span>' + m.label + '</span></div>').join('');
+    return '<div class="rail-row ' + (opts.cls || '') + '">' +
+      '<div class="rail-label"><b>' + esc(opts.key) + '</b><span>' + esc(opts.sub) + '</span></div>' +
+      '<div class="rail" role="img" aria-label="' + esc(opts.key + ' ' + opts.figure + ' ' + opts.note) + '">' +
+        '<div class="rail-fill" style="width:' + (opts.missing ? 0 : Math.min(opts.coverage, 1) * 100) + '%">' + segs + '</div>' + marks +
+      '</div>' +
+      '<div class="fig">' + opts.figure + '<small>' + opts.note + '</small></div></div>';
+  }
+
+  function emptyState(which) {
+    const hasServer = state.server;
+    return '<div class="empty"><p>' + (which === 'index'
+      ? 'Load the SPY, QQQ and DIA holdings files to see which stocks qualify.'
+      : 'Load the 11 sector holdings files to see the qualifying stocks in each sector.') + '</p><p>' +
+      (hasServer ? 'Use Fetch latest files, or drop files you downloaded yourself.'
+        : 'Download each file from its tile above and drop them anywhere on this page, or load the sample to see how it works.') + '</p></div>';
+  }
+
+  function renderIndex() {
+    const box = $('indexBody');
+    const loaded = S.INDEX_FUNDS.filter(f => state.funds[f]);
+    if (!loaded.length) { box.innerHTML = emptyState('index'); return; }
+    const ix = state.result.index;
+    const rule = ix.coverageRule;
+    let rails = '';
+    S.INDEX_FUNDS.forEach(f => {
+      const p = ix.perFund[f];
+      if (!p.loaded) {
+        rails += railRow({ key: f, sub: S.FUND_NAMES[f], eligible: [], coverage: 0, cls: 'missing', missing: true,
+          marks: [{ at: rule, label: pct(rule, 0) }], figure: '—', note: 'File not loaded' });
+        return;
+      }
+      const short = (rule - p.coverage) * 100;
+      rails += railRow({
+        key: f, sub: S.FUND_NAMES[f] + ', at least ' + state.rules.index[f] + '%',
+        eligible: p.eligible, coverage: p.coverage, cls: p.pass ? 'pass' : 'fail',
+        marks: [{ at: rule, label: pct(rule, 0) }],
+        figure: pct(p.coverage, 2),
+        note: p.eligible.length + ' stocks, ' + (p.pass ? 'meets the ' + pct(rule, 0) + ' rule' : short.toFixed(1) + ' pts short of ' + pct(rule, 0))
+      });
+    });
+
+    const rows = ix.final.slice();
+    const k = state.idxSort.key, dir = state.idxSort.dir;
+    rows.sort((a, b) => {
+      const va = k === 'sym' ? a.sym : k === 'sum' ? a.sum : k === 'norm' ? a.norm : (a.by[k] || 0);
+      const vb = k === 'sym' ? b.sym : k === 'sum' ? b.sum : k === 'norm' ? b.norm : (b.by[k] || 0);
+      return (va < vb ? -1 : va > vb ? 1 : 0) * dir;
+    });
+    const maxN = ix.final.reduce((m, c) => Math.max(m, c.norm), 0) || 1;
+    const th = (key, label, num) => {
+      const sort = state.idxSort.key === key ? (state.idxSort.dir < 0 ? 'descending' : 'ascending') : 'none';
+      return '<th class="' + (num ? 'num' : '') + '" aria-sort="' + sort + '"><button data-sort="' + key + '">' + label + '</button></th>';
+    };
+    const missing = S.INDEX_FUNDS.filter(f => !state.funds[f]);
+    let html = '<div class="rails' + (state.animate ? ' grow' : '') + '">' + rails + '</div>';
+    if (missing.length) html += '<div class="notice" style="margin:-8px 0 16px">' + missing.join(', ') + ' not loaded, so this list is incomplete.</div>';
+    html += '<div class="list-head"><div class="count">' + ix.final.length + ' stocks qualify</div>' +
+      '<div class="tools"><button class="btn small" data-copy="index">Copy tickers</button></div></div>';
+    html += '<div class="table-wrap"><table><thead><tr><th>#</th>' + th('sym', 'Symbol') + '<th class="name-h">Name</th>' +
+      th('SPY', 'SPY', 1) + th('QQQ', 'QQQ', 1) + th('DIA', 'DIA', 1) + th('sum', 'Combined', 1) + th('norm', 'Normalized', 1) + '</tr></thead><tbody>';
+    rows.forEach((c, i) => {
+      const cell = (f) => c.by[f] != null ? '<td class="num">' + pct(c.by[f]) + '</td>' : '<td class="num muted">–</td>';
+      html += '<tr><td class="rank">' + (i + 1) + '</td><td class="sym">' + esc(c.sym) + (c.merged ? '<span class="tag" title="GOOG and GOOGL combined">A+C</span>' : '') + '</td>' +
+        '<td class="name">' + esc(c.name) + '</td>' + cell('SPY') + cell('QQQ') + cell('DIA') +
+        '<td class="num">' + pct(c.sum) + '</td>' +
+        '<td class="num norm" title="' + pct(c.norm, 4) + '"><i class="bar" style="--w:' + (c.norm / maxN).toFixed(4) + '"></i><span>' + pct(c.norm) + '</span></td></tr>';
+    });
+    html += '</tbody></table></div>';
+    if (ix.nearMiss.length) {
+      html += '<p class="near">Just below the ' + pct(ix.cutoff) + ' cutoff: ' +
+        ix.nearMiss.map(c => '<b>' + esc(c.sym) + '</b> ' + pct(c.norm, 4)).join(', ') + '.</p>';
+    }
+    box.innerHTML = html;
+  }
+
+  function renderSector() {
+    const box = $('sectorBody');
+    const loaded = S.SECTOR_FUNDS.filter(f => state.funds[f]);
+    if (!loaded.length) { box.innerHTML = emptyState('sector'); return; }
+    const sx = state.result.sector;
+    const rule = sx.coverageRule, ideal = sx.idealRule;
+    const statusWord = { ideal: 'ideal', pass: 'meets', fail: 'below' };
+    const note = (p) => p.status === 'ideal' ? 'above the ideal ' + pct(ideal, 0)
+      : p.status === 'pass' ? 'meets ' + pct(rule, 0) + ', under ideal ' + pct(ideal, 0)
+      : ((rule - p.coverage) * 100).toFixed(1) + ' pts short of ' + pct(rule, 0);
+    const marks = [{ at: rule, label: pct(rule, 0) }, { at: ideal, label: pct(ideal, 0) + ' ideal', ideal: true }];
+    let rails = '';
+    S.SECTOR_FUNDS.forEach(f => {
+      const p = sx.perFund[f];
+      if (!p.loaded) {
+        rails += railRow({ key: f, sub: S.FUND_NAMES[f], eligible: [], coverage: 0, cls: 'missing', missing: true, marks, figure: '—', note: 'File not loaded' });
+        return;
+      }
+      rails += railRow({
+        key: f, sub: S.FUND_NAMES[f] + ', at least ' + state.rules.sector[f] + '%', eligible: p.eligible, coverage: p.coverage,
+        cls: p.status === 'fail' ? 'fail' : 'pass', marks, figure: pct(p.coverage, 2),
+        note: p.eligible.length + ' stocks, ' + note(p)
+      });
+    });
+    const o = sx.overall;
+    rails += railRow({
+      key: 'Overall', sub: o.loaded + ' of 11 sectors', eligible: [{ sym: 'All loaded sectors', w: o.coverage }], coverage: o.coverage,
+      cls: 'overall ' + (o.status === 'fail' ? 'fail' : 'pass'), marks, figure: pct(o.coverage, 2), note: note(o)
+    });
+
+    let html = '<div class="rails' + (state.animate ? ' grow' : '') + '">' + rails + '</div>';
+    const total = loaded.reduce((s, f) => s + sx.perFund[f].eligible.length, 0);
+    html += '<div class="list-head"><div class="count">' + total + ' stocks across ' + loaded.length + ' sectors</div><div class="tools">' +
+      '<div class="seg" role="group" aria-label="Sort sector lists">' +
+      '<button data-ssort="weight" aria-pressed="' + (state.sectorSort === 'weight') + '">By weight</button>' +
+      '<button data-ssort="alpha" aria-pressed="' + (state.sectorSort === 'alpha') + '">A to Z</button></div>' +
+      '<button class="btn small" data-copy="sector">Copy tickers</button></div></div>';
+    html += '<div class="sector-cols">';
+    S.SECTOR_FUNDS.forEach(f => {
+      const p = sx.perFund[f];
+      html += '<div class="scol"><header><b>' + f + '</b><span>' + esc(S.FUND_NAMES[f]) + '</span>';
+      if (!p.loaded) { html += '<span class="st">Not loaded</span></header><div class="none">No file</div></div>'; return; }
+      html += '<span class="st ' + p.status + '">' + pct(p.coverage, 1) + ' ' + statusWord[p.status] + '</span></header><ol>';
+      const list = p.eligible.slice();
+      if (state.sectorSort === 'alpha') list.sort((a, b) => a.sym.localeCompare(b.sym));
+      const max = p.eligible.length ? p.eligible[0].w : 1;
+      list.forEach(h => {
+        html += '<li style="--w:' + (h.w / max).toFixed(4) + '" title="' + esc(h.name) + '"><b>' + esc(h.sym) + '</b><span>' + pct(h.w) + '</span></li>';
+      });
+      html += '</ol></div>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  }
+
+  function renderRulesForm() {
+    const r = state.rules;
+    const field = (group, key, label, step) =>
+      '<div class="field"><label for="r-' + group + '-' + key + '">' + label + '</label>' +
+      '<input id="r-' + group + '-' + key + '" type="number" min="0" step="' + step + '" value="' + r[group][key] + '" data-group="' + group + '" data-key="' + key + '"></div>';
+    $('rulesGrid').innerHTML =
+      '<fieldset><legend>Indexes, per stock (%)</legend>' +
+        field('index', 'SPY', 'SPY, S&amp;P 500', 0.005) + field('index', 'QQQ', 'QQQ, Nasdaq-100', 0.05) + field('index', 'DIA', 'DIA, Dow Jones', 0.1) + '</fieldset>' +
+      '<fieldset><legend>Indexes, list rules (%)</legend>' +
+        field('index', 'coverage', 'Coverage per index', 1) + field('index', 'normalized', 'Normalized weight', 0.05) + '</fieldset>' +
+      '<fieldset><legend>Sectors, per stock (%)</legend>' +
+        S.SECTOR_FUNDS.map(f => field('sector', f, f + ', ' + esc(S.FUND_NAMES[f]), 0.1)).join('') + '</fieldset>' +
+      '<fieldset><legend>Sectors, coverage (%)</legend>' +
+        field('sector', 'coverage', 'Minimum per sector and overall', 1) + field('sector', 'ideal', 'Ideal', 1) + '</fieldset>';
+  }
+
+  function render() {
+    renderTiles();
+    renderNotices();
+    renderHeader();
+    rulesText();
+    const any = Object.keys(state.funds).length > 0;
+    state.result = any ? S.run(state.funds, state.rules) : null;
+    renderIndex();
+    renderSector();
+    $('btnExport').disabled = !any;
+    state.animate = false;
+  }
+
+  /* ---------- export & copy ---------- */
+  function sheet(aoa, pctCols, widths) {
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = 1; R <= range.e.r; R++) {
+      pctCols.forEach(C => { const c = ws[XLSX.utils.encode_cell({ r: R, c: C })]; if (c && c.t === 'n') c.z = '0.000%'; });
+    }
+    if (widths) ws['!cols'] = widths.map(w => ({ wch: w }));
+    return ws;
+  }
+
+  function exportXlsx() {
+    const r = state.result; if (!r) return;
+    const wb = XLSX.utils.book_new();
+    const ix = r.index, sx = r.sector;
+    const v = (x) => x == null ? null : x;
+
+    const fin = [['Symbol', 'Name', 'SPY Weight', 'QQQ Weight', 'DIA Weight', 'Combined Weight', 'Normalized Weight', 'Final Eligible']];
+    ix.final.forEach(c => fin.push([c.sym, c.name, v(c.by.SPY), v(c.by.QQQ), v(c.by.DIA), c.sum, c.norm, 'TRUE']));
+    XLSX.utils.book_append_sheet(wb, sheet(fin, [2, 3, 4, 5, 6], [10, 34, 12, 12, 12, 16, 18, 14]), 'Index Final');
+
+    const steps = [['Symbol', 'Name', 'SPY Weight', 'QQQ Weight', 'DIA Weight', 'Combined Weight', 'Normalized Weight', 'Eligibility']];
+    ix.all.forEach(c => steps.push([c.sym, c.name, v(c.by.SPY), v(c.by.QQQ), v(c.by.DIA), c.sum, c.norm, c.pass ? 'TRUE' : 'FALSE']));
+    XLSX.utils.book_append_sheet(wb, sheet(steps, [2, 3, 4, 5, 6], [10, 34, 12, 12, 12, 16, 18, 12]), 'Index Steps');
+
+    const idxRaw = [['Index', 'Symbol', 'Name', 'Weight', 'Eligibility']];
+    S.INDEX_FUNDS.forEach(f => {
+      const fd = state.funds[f]; if (!fd) return;
+      const thr = ix.perFund[f].threshold;
+      fd.holdings.forEach(h => idxRaw.push([f, h.sym, h.name, h.w, h.w >= thr - 1e-12 ? 'TRUE' : 'FALSE']));
+    });
+    XLSX.utils.book_append_sheet(wb, sheet(idxRaw, [3], [8, 10, 36, 12, 12]), 'SPY-QQQ-DIA');
+
+    const secRaw = [['Sector', 'Symbol', 'Name', 'Weight', 'Eligibility']];
+    S.SECTOR_FUNDS.forEach(f => {
+      const fd = state.funds[f]; if (!fd) return;
+      const thr = sx.perFund[f].threshold;
+      fd.holdings.forEach(h => secRaw.push([f, h.sym, h.name, h.w, h.w >= thr - 1e-12 ? 'TRUE' : 'FALSE']));
+    });
+    XLSX.utils.book_append_sheet(wb, sheet(secRaw, [3], [8, 10, 36, 12, 12]), 'Sectors');
+
+    const loadedSec = S.SECTOR_FUNDS.filter(f => sx.perFund[f].loaded);
+    const head = []; loadedSec.forEach(f => head.push(f, 'Weight'));
+    const ss = [head];
+    const maxLen = Math.max(0, ...loadedSec.map(f => sx.perFund[f].eligible.length));
+    for (let i = 0; i < maxLen; i++) {
+      const row = [];
+      loadedSec.forEach(f => { const h = sx.perFund[f].eligible[i]; row.push(h ? h.sym : null, h ? h.w : null); });
+      ss.push(row);
+    }
+    XLSX.utils.book_append_sheet(wb, sheet(ss, loadedSec.map((_, i) => i * 2 + 1), loadedSec.flatMap(() => [8, 9])), 'Sector Stocks');
+
+    const tab = [['Indices'].concat(loadedSec)];
+    const idxList = ix.final.map(c => c.sym).sort();
+    const secLists = loadedSec.map(f => sx.perFund[f].eligible.map(h => h.sym).sort());
+    const n = Math.max(idxList.length, ...secLists.map(l => l.length));
+    for (let i = 0; i < n; i++) tab.push([idxList[i] || null].concat(secLists.map(l => l[i] || null)));
+    XLSX.utils.book_append_sheet(wb, sheet(tab, [], [10].concat(loadedSec.map(() => 8))), 'Tabela');
+
+    const cov = [['Fund', 'Group', 'Name', 'Per-stock threshold', 'Stocks passing', 'Coverage', 'Coverage rule', 'Status', 'As of']];
+    S.INDEX_FUNDS.forEach(f => { const p = ix.perFund[f]; if (p.loaded) cov.push([f, 'Index', S.FUND_NAMES[f], p.threshold, p.eligible.length, p.coverage, ix.coverageRule, p.pass ? 'Pass' : 'Below', p.asOf || '']); });
+    S.SECTOR_FUNDS.forEach(f => { const p = sx.perFund[f]; if (p.loaded) cov.push([f, 'Sector', S.FUND_NAMES[f], p.threshold, p.eligible.length, p.coverage, sx.coverageRule, { ideal: 'Ideal', pass: 'Pass', fail: 'Below' }[p.status], p.asOf || '']); });
+    cov.push(['Overall', 'Sector', 'All loaded sectors', null, null, sx.overall.coverage, sx.coverageRule, { ideal: 'Ideal', pass: 'Pass', fail: 'Below', none: '' }[sx.overall.status], '']);
+    XLSX.utils.book_append_sheet(wb, sheet(cov, [3, 5, 6], [9, 8, 24, 18, 14, 11, 14, 9, 14]), 'Coverage');
+
+    const counts = {};
+    Object.values(state.funds).forEach(f => { const d = parseDate(f.asOf); if (d) { const k = fileDate(d); counts[k] = (counts[k] || 0) + 1; } });
+    const stamp = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0] || fileDate(new Date());
+    XLSX.writeFile(wb, stamp + '_Scanners.xlsx');
+  }
+
+  async function copyTickers(which, btn) {
+    const r = state.result; if (!r) return;
+    let text;
+    if (which === 'index') text = r.index.final.map(c => c.sym).join(', ');
+    else text = S.SECTOR_FUNDS.filter(f => r.sector.perFund[f].loaded)
+      .map(f => f + ': ' + r.sector.perFund[f].eligible.map(h => h.sym).join(', ')).join('\n');
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e2) { /* ignore */ }
+      ta.remove();
+    }
+    const old = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = old; }, 1400);
+  }
+
+  /* ---------- events ---------- */
+  $('btnAdd').addEventListener('click', () => $('fileInput').click());
+  $('fileInput').addEventListener('change', (e) => { addFiles(Array.from(e.target.files)); e.target.value = ''; });
+  $('btnSample').addEventListener('click', loadSample);
+  $('btnExport').addEventListener('click', exportXlsx);
+  $('btnFetch').addEventListener('click', () => state.mode === 'published' ? loadPublished() : fetchAll(false));
+  $('btnReset').addEventListener('click', () => { state.rules = S.cloneRules(); renderRulesForm(); render(); });
+
+  $('rulesGrid').addEventListener('input', (e) => {
+    const t = e.target; if (!t.dataset.group) return;
+    const val = parseFloat(t.value);
+    if (isNaN(val) || val < 0) return;
+    state.rules[t.dataset.group][t.dataset.key] = val;
+    render();
+  });
+
+  document.addEventListener('click', (e) => {
+    const s = e.target.closest('[data-sort]');
+    if (s) {
+      const key = s.dataset.sort;
+      state.idxSort = { key, dir: state.idxSort.key === key ? -state.idxSort.dir : (key === 'sym' ? 1 : -1) };
+      renderIndex();
+      const again = document.querySelector('[data-sort="' + key + '"]'); if (again) again.focus();
+      return;
+    }
+    const ss = e.target.closest('[data-ssort]');
+    if (ss) { state.sectorSort = ss.dataset.ssort; renderSector(); return; }
+    const cp = e.target.closest('[data-copy]');
+    if (cp) copyTickers(cp.dataset.copy, cp);
+  });
+
+  $('notices').addEventListener('change', (e) => {
+    const sel = e.target.closest('select[data-pending]'); if (!sel || !sel.value) return;
+    const p = state.pending.splice(+sel.dataset.pending, 1)[0];
+    state.funds[sel.value] = S.buildFund(sel.value, p.rows, { asOf: p.asOf, source: p.filename });
+    state.tiles[sel.value] = { state: 'ok' };
+    state.animate = true;
+    render();
+  });
+
+  // Drag and drop anywhere
+  let depth = 0;
+  const drop = $('drop');
+  window.addEventListener('dragenter', (e) => { if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) { depth++; drop.classList.add('on'); } });
+  window.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) drop.classList.remove('on'); });
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => {
+    e.preventDefault(); depth = 0; drop.classList.remove('on');
+    const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+    if (files.length) addFiles(files);
+  });
+
+  /* ---------- start ---------- */
+  function setHint() {
+    let text;
+    if (state.mode === 'server') text = 'Fetch latest files downloads all 14 daily holdings files through the local server. You can also drop files here.';
+    else if (state.mode === 'published') {
+      const d = state.published && state.published.updated ? new Date(state.published.updated) : null;
+      text = (d ? 'Files downloaded automatically on ' + fmtDate(d) + ' at ' +
+        d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '. ' : '') + 'Drop newer files here to replace them.';
+    } else text = 'Download each daily file from its tile, then drop them anywhere on this page. Run server.py to fetch them automatically.';
+    $('srcHint').textContent = text;
+  }
+
+  async function detectServer() {
+    if (location.protocol === 'file:') return false;
+    try {
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 1500);
+      const res = await fetch('/api/ping', { signal: ctl.signal }); clearTimeout(t);
+      return res.ok && (await res.json()).ok === true;
+    } catch (e) { return false; }
+  }
+
+  renderRulesForm();
+  setHint();
+  render();
+  async function detectPublished() {
+    if (location.protocol === 'file:') return false;
+    try {
+      const res = await fetch('data/manifest.json', { cache: 'no-cache' });
+      return res.ok && !!(await res.json()).files;
+    } catch (e) { return false; }
+  }
+
+  (async () => {
+    if (await detectServer()) state.mode = 'server';
+    else if (await detectPublished()) state.mode = 'published';
+    state.server = state.mode === 'server';
+    const btn = $('btnFetch');
+    btn.hidden = state.mode === 'manual';
+    btn.textContent = state.mode === 'published' ? 'Reload data' : 'Fetch latest files';
+    setHint();
+    render();
+    if (state.mode === 'server') fetchAll(false);
+    else if (state.mode === 'published') loadPublished();
+  })();
+})();
+</script>
+</body>
+</html>
