@@ -231,8 +231,6 @@ footer p{margin:0 0 6px;max-width:90ch}
     </div>
     <div class="actions">
       <button class="btn primary" id="btnFetch" hidden>Fetch latest files</button>
-      <button class="btn" id="btnAdd">Add files</button>
-      <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.json" hidden>
       <button class="btn" id="btnExport" disabled>Export to Excel</button>
     </div>
   </header>
@@ -284,7 +282,7 @@ footer p{margin:0 0 6px;max-width:90ch}
       (<a href="https://www.invesco.com/us/financial-products/etfs/holdings?audienceType=Investor&amp;ticker=QQQ" target="_blank" rel="noopener">older Invesco page</a>),
       <a href="https://www.sectorspdrs.com/allsectors" target="_blank" rel="noopener">Select Sector SPDRs</a>.
       Weights come from each fund's daily holdings file. GOOG is combined into GOOGL in every fund before screening.</p>
-    <p>For research only, not investment advice. <span class="ver">Version 5, 13 Sep 2026</span></p>
+    <p>For research only, not investment advice. <span class="ver">Version 6, 13 Sep 2026</span></p>
   </footer>
 </div>
 
@@ -1092,8 +1090,6 @@ footer p{margin:0 0 6px;max-width:90ch}
   }
 
   /* ---------- events ---------- */
-  $('btnAdd').addEventListener('click', () => $('fileInput').click());
-  $('fileInput').addEventListener('change', (e) => { addFiles(Array.from(e.target.files)); e.target.value = ''; });
   $('btnExport').addEventListener('click', exportXlsx);
   // A click on the button always re-downloads; the automatic fetch on startup
   // may reuse files already saved today.
