@@ -191,24 +191,13 @@ details.rules[open] summary::before{content:"\2212"}
 
 footer{padding:10px 0 48px;color:var(--ink-3);font-size:13px}
 footer p{margin:0 0 6px;max-width:90ch}
+.ver{color:var(--ink-3)}
 
 .drop{position:fixed;inset:0;background:rgba(21,34,59,.82);display:none;place-items:center;z-index:50;color:#fff}
 .drop.on{display:grid}
 .drop div{border:2px dashed rgba(255,255,255,.6);border-radius:18px;padding:48px 64px;text-align:center}
 .drop strong{display:block;font-size:2rem;font-variation-settings:"wdth" 122;font-weight:780}
 
-.gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px;overflow:auto}
-.gate[hidden]{display:none}
-.gate-box{background:var(--paper);border-radius:var(--radius-lg);padding:28px 26px;width:min(420px,100%)}
-.gate-box h2{font-size:1.7rem;margin-bottom:6px}
-.gate-box p{margin:0 0 16px;color:var(--ink-2)}
-.gate-box input[type=password],.gate-box input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--rule);border-radius:var(--radius-sm);margin-bottom:12px;font-size:16px}
-.gate-box .btn{width:100%;padding:11px}
-.gate-msg{color:var(--fail);font-size:14px;margin:10px 0 0;min-height:1px}
-.gate-code{background:#F4F6F9;border:1px solid var(--rule);border-radius:var(--radius-sm);padding:10px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;word-break:break-all;margin:12px 0;-webkit-user-select:all;user-select:all}
-.gate-box ol{margin:0;padding-left:20px;color:var(--ink-2);font-size:14px}
-.gate-box ol li{margin-bottom:5px}
-.lock{background:none;border:0;padding:0;color:var(--ink-3);font-size:13px;text-decoration:underline;cursor:pointer}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
 @media (max-width:600px){
@@ -295,40 +284,12 @@ footer p{margin:0 0 6px;max-width:90ch}
       (<a href="https://www.invesco.com/us/financial-products/etfs/holdings?audienceType=Investor&amp;ticker=QQQ" target="_blank" rel="noopener">older Invesco page</a>),
       <a href="https://www.sectorspdrs.com/allsectors" target="_blank" rel="noopener">Select Sector SPDRs</a>.
       Weights come from each fund's daily holdings file. GOOG is combined into GOOGL in every fund before screening.</p>
-    <p>For research only, not investment advice.</p>
+    <p>For research only, not investment advice. <span class="ver">Version 5, 13 Sep 2026</span></p>
   </footer>
 </div>
 
 <div class="drop" id="drop" aria-hidden="true"><div><strong>Drop holdings files</strong>SPY, QQQ, DIA and sector files, or a Scanners workbook</div></div>
 <div class="sr" aria-live="polite" id="live"></div>
-
-<div class="gate" id="gate" hidden>
-  <div class="gate-box">
-    <h2>Holdings scanner</h2>
-    <div id="gateAsk">
-      <p>Enter the password to see the list.</p>
-      <label class="sr" for="gatePass">Password</label>
-      <input type="password" id="gatePass" autocomplete="current-password" enterkeyhint="go">
-      <button class="btn primary" id="gateGo">Unlock</button>
-      <p class="gate-msg" id="gateMsg"></p>
-    </div>
-    <div id="gateSetup" hidden>
-      <p>No password has been set yet. Choose one, then put the line below into your <code>index.html</code>.</p>
-      <label class="sr" for="gateNew">New password</label>
-      <input type="text" id="gateNew" placeholder="Type a password" autocomplete="off">
-      <button class="btn primary" id="gateMake">Create the line</button>
-      <div id="gateOut" hidden>
-        <div class="gate-code" id="gateCode"></div>
-        <ol>
-          <li>In your repository, open <b>index.html</b> and click the pencil icon.</li>
-          const PASSWORD_HASH = "3785bf1cd254a2d51237c9f6db9caf7cf56af7907f81ea367eae7ce883789a54";
-          <li>Replace that whole line with the line above.</li>
-          <li>Click <b>Commit changes</b>. The site asks for your password from then on.</li>
-        </ol>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 /* Holdings scanner engine: file parsing + screening rules.
@@ -670,121 +631,6 @@ footer p{margin:0 0 6px;max-width:90ch}
   else root.Scanner = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
-</script>
-<script>
-/* Compact SHA-256, so the password gate also works from a local file
-   (browsers disable the built-in crypto API on file:// pages). */
-function sha256Hex(str) {
-  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
-    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
-    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
-    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
-    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
-    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
-    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
-    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
-  let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
-  const bytes = Array.from(new TextEncoder().encode(str));
-  const bitLen = bytes.length * 8;
-  bytes.push(0x80);
-  while (bytes.length % 64 !== 56) bytes.push(0);
-  const hi = Math.floor(bitLen / 0x100000000), lo = bitLen >>> 0;
-  [24, 16, 8, 0].forEach(s => bytes.push((hi >>> s) & 0xff));
-  [24, 16, 8, 0].forEach(s => bytes.push((lo >>> s) & 0xff));
-  const rr = (x, n) => (x >>> n) | (x << (32 - n));
-  const w = new Array(64);
-  for (let i = 0; i < bytes.length; i += 64) {
-    for (let t = 0; t < 16; t++) {
-      w[t] = (bytes[i + t * 4] << 24) | (bytes[i + t * 4 + 1] << 16) | (bytes[i + t * 4 + 2] << 8) | bytes[i + t * 4 + 3];
-    }
-    for (let t = 16; t < 64; t++) {
-      const s0 = rr(w[t - 15], 7) ^ rr(w[t - 15], 18) ^ (w[t - 15] >>> 3);
-      const s1 = rr(w[t - 2], 17) ^ rr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
-      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
-    }
-    let [a, b, c, d, e, f, g, h] = H;
-    for (let t = 0; t < 64; t++) {
-      const S1 = rr(e, 6) ^ rr(e, 11) ^ rr(e, 25);
-      const ch = (e & f) ^ (~e & g);
-      const t1 = (h + S1 + ch + K[t] + w[t]) | 0;
-      const S0 = rr(a, 2) ^ rr(a, 13) ^ rr(a, 22);
-      const maj = (a & b) ^ (a & c) ^ (b & c);
-      const t2 = (S0 + maj) | 0;
-      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
-    }
-    H = H.map((v, j) => (v + [a, b, c, d, e, f, g, h][j]) | 0);
-  }
-  return H.map(v => (v >>> 0).toString(16).padStart(8, '0')).join('');
-}
-if (typeof module !== 'undefined') module.exports = sha256Hex;
-
-/* ------------------------------------------------------------------
-   Password gate. Replace the line below with the one the setup screen
-   gives you. The site never stores your actual password, only this
-   scrambled version of it.
-   ------------------------------------------------------------------ */
-const PASSWORD_HASH = "SET-ME";
-
-window.ScannerGate = (function () {
-  'use strict';
-  const SALT = '::holdings-scanner';
-  const KEY = 'scanner-unlocked';
-  const gate = document.getElementById('gate');
-  const onOwnComputer = location.protocol === 'file:' ||
-    ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) >= 0;
-  const notSet = !PASSWORD_HASH || PASSWORD_HASH === 'SET-ME';
-
-  window.scannerLock = function () {
-    try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
-    location.reload();
-  };
-
-  // No password set: show the setup screen. Password set but running on your
-  // own computer: no point asking, you already have the file.
-  if (!notSet && onOwnComputer) return Promise.resolve();
-
-  let remembered = null;
-  try { remembered = localStorage.getItem(KEY); } catch (e) { /* private mode */ }
-  if (!notSet && remembered === PASSWORD_HASH) return Promise.resolve();
-
-  gate.hidden = false;
-  document.getElementById('gateAsk').hidden = notSet;
-  document.getElementById('gateSetup').hidden = !notSet;
-
-  if (notSet) {
-    const make = () => {
-      const v = document.getElementById('gateNew').value;
-      if (!v) return;
-      document.getElementById('gateCode').textContent = 'const PASSWORD_HASH = "' + sha256Hex(v + SALT) + '";';
-      document.getElementById('gateOut').hidden = false;
-    };
-    document.getElementById('gateMake').addEventListener('click', make);
-    document.getElementById('gateNew').addEventListener('keydown', e => { if (e.key === 'Enter') make(); });
-    return new Promise(() => {});   // stays on the setup screen
-  }
-
-  return new Promise(resolve => {
-    const input = document.getElementById('gatePass');
-    const msg = document.getElementById('gateMsg');
-    const tries = { n: 0 };
-    const submit = () => {
-      if (sha256Hex(input.value + SALT) === PASSWORD_HASH) {
-        try { localStorage.setItem(KEY, PASSWORD_HASH); } catch (e) { /* ignore */ }
-        gate.hidden = true;
-        resolve();
-        return;
-      }
-      tries.n++;
-      msg.textContent = 'That password is not right.';
-      input.value = '';
-      input.focus();
-      if (tries.n >= 5) msg.textContent = 'That password is not right. Check for capital letters.';
-    };
-    document.getElementById('gateGo').addEventListener('click', submit);
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-    setTimeout(() => input.focus(), 50);
-  });
-})();
 </script>
 <script>
 (function () {
@@ -1249,7 +1095,9 @@ window.ScannerGate = (function () {
   $('btnAdd').addEventListener('click', () => $('fileInput').click());
   $('fileInput').addEventListener('change', (e) => { addFiles(Array.from(e.target.files)); e.target.value = ''; });
   $('btnExport').addEventListener('click', exportXlsx);
-  $('btnFetch').addEventListener('click', () => state.mode === 'published' ? loadPublished() : fetchAll(false));
+  // A click on the button always re-downloads; the automatic fetch on startup
+  // may reuse files already saved today.
+  $('btnFetch').addEventListener('click', () => state.mode === 'published' ? loadPublished() : fetchAll(true));
   $('btnReset').addEventListener('click', () => { state.rules = S.cloneRules(); renderRulesForm(); render(); });
 
   $('rulesGrid').addEventListener('input', (e) => {
@@ -1317,11 +1165,6 @@ window.ScannerGate = (function () {
     } catch (e) { return false; }
   }
 
-  function gateIsOff() {
-    return location.protocol === 'file:' ||
-      ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) >= 0;
-  }
-
   renderRulesForm();
   setHint();
   render();
@@ -1334,13 +1177,6 @@ window.ScannerGate = (function () {
   }
 
   (async () => {
-    await window.ScannerGate;
-    if (!gateIsOff()) {
-      const p = document.createElement('p');
-      p.innerHTML = '<button class="lock" id="btnLock">Lock this device</button>';
-      document.querySelector('footer').appendChild(p);
-      document.getElementById('btnLock').addEventListener('click', () => window.scannerLock());
-    }
     if (await detectServer()) state.mode = 'server';
     else if (await detectPublished()) state.mode = 'published';
     state.server = state.mode === 'server';
