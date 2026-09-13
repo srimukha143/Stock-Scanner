@@ -34,8 +34,29 @@ GitHub downloads the 14 files every weekday morning and publishes the site with 
 4. Go to **Actions > Update holdings > Run workflow** for the first run.
 5. Your site is at `https://<your-username>.github.io/stock-scanner/`.
 
-It refreshes Mon-Fri at about 7:30 am and 10:00 am New York time; **Run workflow** refreshes on demand.
+It refreshes every evening at about 7:30, 9:30 and 11:30 pm New York time (one hour earlier in winter); **Run workflow** refreshes on demand.
 If a vendor blocks GitHub's download, that fund's tile shows an error and you can drop the file in by hand.
+
+### Put a password on the site
+
+The published page can show a password box instead of your list.
+
+1. Open your site and follow the setup screen: type a password and click
+   **Create the line**. It shows a line beginning `const PASSWORD_HASH =`.
+2. In the repository, open `index.html`, click the pencil icon, find
+   `PASSWORD_HASH` near the top, and replace that whole line with the new one.
+3. Commit. The site now asks for the password.
+
+Each phone or computer asks once and then remembers. **Lock this device**, at the
+bottom of the page, makes it ask again. Opening `index.html` on your own computer
+never asks, since you already have the file.
+
+Your password is not stored anywhere: the file holds only a scrambled version
+(a SHA-256 hash) that cannot be turned back into the password. This keeps casual
+visitors out. It is not strong security, because the holdings files under
+`data/` can still be reached directly by anyone who knows the address, and a
+determined person could guess a weak password by testing it against the hash.
+Use a password you do not use anywhere else.
 
 ### Add it to your home screen
 
