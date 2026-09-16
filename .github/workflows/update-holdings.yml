@@ -6,11 +6,12 @@
 name: Update holdings
 
 on:
-  # Times are UTC. Funds post the day's holdings after the close, so run in the evening
-  # (New York time shown for summer; one hour earlier in winter).
-    schedule:
-    - cron: "0 11 * * *"
-    - cron: "0 12 * * *"
+  # Times are UTC. 7:00 am New York time is 11:00 UTC in summer and 12:00 UTC in
+  # winter, so both are listed; only the one matching the season lands at 7:00 am,
+  # and the other runs an hour before or after.
+  schedule:
+    - cron: "0 11 * * *"      # 7:00 am every day (summer)
+    - cron: "0 12 * * *"      # 7:00 am every day (winter)
   workflow_dispatch:          # "Run workflow" button for a manual refresh
   push:
     branches: [main]
