@@ -17,7 +17,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write    # needed by the keep-alive commit below
   pages: write
   id-token: write
 
@@ -52,3 +52,21 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      # GitHub switches off scheduled jobs after 60 days with no commits to the
+      # repository. This job only ever runs itself, so it commits a timestamp
+      # every Sunday to reset that clock. "[skip ci]" stops the commit starting
+      # another run.
+      - name: Keep the schedule alive
+        if: github.event_name == 'schedule'
+        run: |
+          if [ "$(date -u +%u)" != "7" ]; then
+            echo "Not Sunday - no keep-alive commit needed today."
+            exit 0
+          fi
+          date -u +"Last automatic run: %Y-%m-%d %H:%M UTC" > last-run.txt
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add last-run.txt
+          git diff --staged --quiet || git commit -m "Keep schedule alive [skip ci]"
+          git push
