@@ -6,12 +6,13 @@
 name: Update holdings
 
 on:
-  # Times are UTC. 7:00 am New York time is 11:00 UTC in summer and 12:00 UTC in
-  # winter, so both are listed; only the one matching the season lands at 7:00 am,
-  # and the other runs an hour before or after.
+  # GitHub runs scheduled jobs when its queue has room, not when asked: on this
+  # repository they have been landing 6 to 10 hours late. A single daily time is
+  # therefore unreliable, so this runs every 4 hours and whichever attempt gets
+  # through keeps the page current. Each run takes about 20 seconds. The odd
+  # minute avoids the top of the hour, which is the most congested moment.
   schedule:
-    - cron: "0 11 * * *"      # 7:00 am every day (summer)
-    - cron: "0 12 * * *"      # 7:00 am every day (winter)
+    - cron: "17 */4 * * *"    # 00:17, 04:17, 08:17, 12:17, 16:17, 20:17 UTC
   workflow_dispatch:          # "Run workflow" button for a manual refresh
   push:
     branches: [main]
@@ -64,7 +65,8 @@ jobs:
             echo "Not Sunday - no keep-alive commit needed today."
             exit 0
           fi
-          date -u +"Last automatic run: %Y-%m-%d %H:%M UTC" > last-run.txt
+          # Date only, so later runs the same day produce no change and no commit.
+          date -u +"Last automatic run: %Y-%m-%d" > last-run.txt
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add last-run.txt
