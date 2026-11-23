@@ -6,13 +6,13 @@
 name: Update holdings
 
 on:
-  # GitHub runs scheduled jobs when its queue has room, not when asked: on this
-  # repository they have been landing 6 to 10 hours late. A single daily time is
-  # therefore unreliable, so this runs every 4 hours and whichever attempt gets
-  # through keeps the page current. Each run takes about 20 seconds. The odd
-  # minute avoids the top of the hour, which is the most congested moment.
+  # 14:05 UTC = 9:05 am in New Jersey while clocks are on EST (Nov-Mar).
+  # GitHub's clock ignores daylight saving, so from mid-March this same line
+  # lands at 10:05 am; change the 14 to a 13 then to put it back to 9:05 am.
+  # GitHub also starts scheduled jobs when its queue has room rather than on
+  # the minute, so expect the run itself to begin some time after 9.
   schedule:
-    - cron: "17 */4 * * *"    # 00:17, 04:17, 08:17, 12:17, 16:17, 20:17 UTC
+    - cron: "5 14 * * *"      # once a day, 9:05 am New Jersey (winter)
   workflow_dispatch:          # "Run workflow" button for a manual refresh
   push:
     branches: [main]
@@ -33,9 +33,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -45,14 +45,17 @@ jobs:
           cp index.html site/
           python server.py --download site/data || echo "No files downloaded; publishing the site anyway"
 
-      - uses: actions/configure-pages@v5
+      # These five actions are GitHub's own. Their versions must be kept current:
+      # an old deploy-pages cannot read the artifact a current runner produces, which
+      # fails with 'No artifacts named "github-pages" were found'.
+      - uses: actions/configure-pages@v6
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       # GitHub switches off scheduled jobs after 60 days with no commits to the
       # repository. This job only ever runs itself, so it commits a timestamp
