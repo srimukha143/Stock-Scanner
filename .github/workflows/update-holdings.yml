@@ -1,7 +1,13 @@
-# Publishes the scanner to GitHub Pages with today's holdings files included,
-# so it can be opened from any phone or computer without running anything.
+# Downloads the 14 daily holdings files and publishes the scanner, so it can be
+# opened from any phone or computer without running anything.
 #
-# One-time setup: repo Settings -> Pages -> Source: "GitHub Actions".
+# This version publishes by committing the finished site to a branch called
+# gh-pages, instead of using GitHub's Pages upload/deploy actions, which kept
+# failing with 'No artifacts named "github-pages" were found'.
+#
+# One-time setup: repo Settings -> Pages -> Source: "Deploy from a branch",
+# Branch: "gh-pages", folder "/ (root)". Do that AFTER this file's first run,
+# because the gh-pages branch has to exist before it appears in the list.
 
 name: Update holdings
 
@@ -18,20 +24,15 @@ on:
     branches: [main]
 
 permissions:
-  contents: write    # needed by the keep-alive commit below
-  pages: write
-  id-token: write
+  contents: write             # the job publishes by pushing a branch
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: publish
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
 
@@ -45,22 +46,27 @@ jobs:
           cp index.html site/
           python server.py --download site/data || echo "No files downloaded; publishing the site anyway"
 
-      # These five actions are GitHub's own. Their versions must be kept current:
-      # an old deploy-pages cannot read the artifact a current runner produces, which
-      # fails with 'No artifacts named "github-pages" were found'.
-      - uses: actions/configure-pages@v6
+      - name: Check the site was built
+        run: |
+          test -s site/index.html || { echo "site/index.html is missing or empty"; exit 1; }
+          echo "Files to publish:"; find site -type f | head -30
+          echo "Total: $(find site -type f | wc -l) files"
 
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: site
-
-      - id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Publish the site to the gh-pages branch
+        run: |
+          cd site
+          touch .nojekyll          # stop GitHub trying to run Jekyll over the files
+          git init -q -b gh-pages
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Holdings update $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
+          echo "Published. The site updates within a minute or two."
 
       # GitHub switches off scheduled jobs after 60 days with no commits to the
-      # repository. This job only ever runs itself, so it commits a timestamp
-      # every Sunday to reset that clock. "[skip ci]" stops the commit starting
-      # another run.
+      # repository, so this commits a timestamp every Sunday to reset that clock.
+      # "[skip ci]" stops the commit starting another run.
       - name: Keep the schedule alive
         if: github.event_name == 'schedule'
         run: |
