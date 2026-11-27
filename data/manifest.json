@@ -1,0 +1,62 @@
+{
+ "updated": "2026-11-27T22:37:34+00:00",
+ "files": {
+  "SPY": {
+   "file": "SPY.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx"
+  },
+  "DIA": {
+   "file": "DIA.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-dia.xlsx"
+  },
+  "XLB": {
+   "file": "XLB.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xlb.xlsx"
+  },
+  "XLC": {
+   "file": "XLC.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xlc.xlsx"
+  },
+  "XLE": {
+   "file": "XLE.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xle.xlsx"
+  },
+  "XLF": {
+   "file": "XLF.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xlf.xlsx"
+  },
+  "XLI": {
+   "file": "XLI.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xli.xlsx"
+  },
+  "XLK": {
+   "file": "XLK.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xlk.xlsx"
+  },
+  "XLP": {
+   "file": "XLP.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xlp.xlsx"
+  },
+  "XLRE": {
+   "file": "XLRE.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xlre.xlsx"
+  },
+  "XLU": {
+   "file": "XLU.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xlu.xlsx"
+  },
+  "XLV": {
+   "file": "XLV.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xlv.xlsx"
+  },
+  "XLY": {
+   "file": "XLY.xlsx",
+   "source": "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-xly.xlsx"
+  },
+  "QQQ": {
+   "file": "QQQ.json",
+   "source": "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46090E103/holdings/fund?idType=cusip&productType=ETF"
+  }
+ },
+ "errors": {}
+}
